@@ -67,7 +67,7 @@ export default {
     // ---- Monetary policy (MP) ----
     { key: 'Rprime', latex: "R'", labelKey: 'param.shortrun.Rprime',
       groupKey: 'group.shortrun.mp',
-      min: 0, max: 12, step: 0.25, def1: 6, def2: 6, unit: '' },
+      min: 0, max: 12, step: 0.25, def1: 2, def2: 2, unit: '' },
     { key: 't0', latex: 't_0', labelKey: 'param.shortrun.t0',
       min: 0, max: 20, step: 1, def1: 1, def2: 1, unit: '' },
     { key: 't1', latex: 't_1', labelKey: 'param.shortrun.t1',
@@ -78,7 +78,7 @@ export default {
       groupKey: 'group.shortrun.phillips',
       min: 0.05, max: 1.5, step: 0.05, def1: 0.5, def2: 0.5, unit: '' },
     { key: 'pi0', latex: '\\pi_0', labelKey: 'param.shortrun.pi0',
-      min: 0, max: 15, step: 0.5, def1: 10, def2: 10, unit: '' },
+      min: 0, max: 15, step: 0.5, def1: 2, def2: 2, unit: '' },
     { key: 'obar', latex: '\\bar{o}', labelKey: 'param.shortrun.obar',
       min: -5, max: 5, step: 0.25, def1: 0, def2: 0, unit: '' },
     { key: 'oStart', latex: 't_o', labelKey: 'param.shortrun.oStart',

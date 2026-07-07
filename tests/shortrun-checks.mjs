@@ -145,20 +145,32 @@ check('IS defaults: benchmark R=rbar ⇒ Ỹ=0', () => {
   assert.ok(near(out.scalars.Yeq_bench, 0, 1e-9), `Yeq_bench=${out.scalars.Yeq_bench}`);
 });
 
+// Default parameter sets must describe an economy at potential with small,
+// stable inflation: R′ = r̄ ⇒ Ỹ_t = 0, π_t = π₀ = 2 constant, u_t = ū.
+check('Defaults: economy at potential, stable 2% inflation, u = ubar', () => {
+  const p = Object.fromEntries(shortrun.params.map((x) => [x.key, x.def1]));
+  const out = shortrun.compute(p);
+  const s = out.series;
+  assert.ok(s.Ytilde.every((v) => near(v, 0, 1e-9)), `Ytilde=${s.Ytilde.slice(0, 4)}`);
+  assert.ok(s.pi.every((v) => near(v, 2, 1e-9)), `pi=${s.pi.slice(0, 4)}`);
+  assert.ok(s.u.every((v) => near(v, p.ubar, 1e-9)), `u=${s.u.slice(0, 4)}`);
+  assert.ok(s.R.every((v) => near(v, p.rbar, 1e-9)), `R=${s.R.slice(0, 4)}`);
+});
+
 // ── Monetary policy block (Ch. 12) ──────────────────────────────────────────
 console.log('shortrun.js — Monetary policy (Ch. 12)');
 
 // Monetary tightening: defaults ā=0, b̄=0.5, r̄=2, R′=6 ⇒ Ỹ=-2 while tight.
 // (SPEC §8.4 Volcker: R′−r̄=4, b̄=0.5 ⇒ −2.)
 check('Tightening: R\'=6, rbar=2, bbar=0.5 ⇒ Yeq_policy=-2', () => {
-  const out = shortrun.compute(defaults());
+  const out = shortrun.compute(defaults({ Rprime: 6, pi0: 10 }));
   assert.ok(near(out.scalars.Yeq_policy, -2, 1e-9), `Yeq_policy=${out.scalars.Yeq_policy}`);
   assert.ok(near(out.scalars.Yeq_bench, 0, 1e-12), `Yeq_bench=${out.scalars.Yeq_bench}`);
 });
 
 // Volcker arithmetic: v̄=1/2, Ỹ=-2 ⇒ Δπ=-1 per tight year  (SPEC §10.5).
 check('Volcker: vbar=1/2, Ỹ=-2 ⇒ Δπ=-1/yr', () => {
-  const out = shortrun.compute(defaults({ vbar: 0.5 }));
+  const out = shortrun.compute(defaults({ vbar: 0.5, Rprime: 6, pi0: 10 }));
   assert.ok(near(out.scalars.dpi_perPeriod, -1, 1e-9), `Δπ=${out.scalars.dpi_perPeriod}`);
 });
 
@@ -177,7 +189,7 @@ check('Volcker glide: 5 tight years at -1/yr ⇒ pi 10→5 then flat', () => {
 
 // Volcker with a flatter Phillips v̄=1/3 ⇒ Δπ=-2/3 per year (slower)  (SPEC §10.5).
 check('Volcker: vbar=1/3, Ỹ=-2 ⇒ Δπ=-2/3/yr', () => {
-  const out = shortrun.compute(defaults({ vbar: 1 / 3 }));
+  const out = shortrun.compute(defaults({ vbar: 1 / 3, Rprime: 6, pi0: 10 }));
   assert.ok(near(out.scalars.dpi_perPeriod, -2 / 3, 1e-9), `Δπ=${out.scalars.dpi_perPeriod}`);
 });
 
