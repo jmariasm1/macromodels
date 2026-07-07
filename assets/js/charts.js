@@ -21,6 +21,7 @@ const BASE_CONFIG = {
   responsive: true,
   displayModeBar: 'hover',
   displaylogo: false,
+  scrollZoom: true,
   modeBarButtonsToRemove: ['lasso2d', 'select2d', 'autoScale2d'],
 };
 
@@ -37,6 +38,16 @@ function styleTrace(trace) {
 
   const styled = Object.assign({}, trace);
   styled.type = styled.type || 'scatter';
+
+  // Bar traces are colored via marker.color, not line; don't inject a line/mode
+  // (Plotly ignores `mode`/`line` on bars, but keep the object clean).
+  if (styled.type === 'bar') {
+    delete styled.mode;
+    delete styled.line;
+    styled.marker = Object.assign({ color }, trace.marker || {});
+    return styled;
+  }
+
   styled.mode = styled.mode || 'lines';
 
   const existingLine = trace.line || {};
@@ -61,6 +72,7 @@ function styleTrace(trace) {
 function buildLayout(descriptor, overrides) {
   const layout = {
     autosize: true,
+    dragmode: 'pan',
     font: { family: FONT_FAMILY, size: 12, color: COLORS.ink },
     margin: { l: 56, r: 20, t: overrides.title ? 36 : 12, b: 48 },
     plot_bgcolor: '#ffffff',

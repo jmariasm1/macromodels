@@ -1,10 +1,8 @@
 // shortrun.js [SHORTRUN]
-// Page entry for short-run.html. Imports the page engine and the three
-// short-run model modules (Ch. 9, 11, 12) and boots the page.
+// Page entry for short-run.html. The short run is now ONE integrated model of the
+// business cycle (Jones Ch. 9 + 11 + 12): IS + MP + Phillips + Okun.
 
 import { initPage } from '../core.js';
-import okun from '../models/okun.js';
-import iscurve from '../models/iscurve.js';
-import mppc from '../models/mppc.js';
+import shortrunModel from '../models/shortrun.js';
 
-initPage({ pageId: 'shortrun', models: [okun, iscurve, mppc] });
+initPage({ pageId: 'shortrun', models: [shortrunModel] });

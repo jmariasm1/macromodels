@@ -1,10 +1,9 @@
 // longrun.js [LONGRUN]
-// Page entry for long-run.html: wires the three long-run model modules
-// (Jones 6e, chapters 5, 7 and 8) into the framework page engine.
+// Page entry for long-run.html: wires the single INTEGRATED long-run model
+// (Jones 6e, chapters 5, 7 and 8 merged into one consistent economy) into the
+// framework page engine. The tab bar auto-hides for a single-model page.
 
 import { initPage } from '../core.js';
-import solow from '../models/solow.js';
-import labor from '../models/labor.js';
-import inflation from '../models/inflation.js';
+import longrunModel from '../models/longrun.js';
 
-initPage({ pageId: 'longrun', models: [solow, labor, inflation] });
+initPage({ pageId: 'longrun', models: [longrunModel] });

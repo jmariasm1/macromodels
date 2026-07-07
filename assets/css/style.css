@@ -493,3 +493,27 @@ select:focus-visible,
   .site-header, .model-tabbar, .params-sidebar, .scenario-bar, .export-bar, .plot-card-head button { display: none !important; }
   .app-grid { grid-template-columns: 1fr; }
 }
+
+/* --- Group headers for integrated models --------------------------------- */
+.param-group-row .param-group-cell,
+.endo-group-row .endo-group-cell {
+  padding: 14px 8px 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--brand);
+  border-bottom: 2px solid var(--border);
+}
+.plot-group-heading,
+.equation-group-heading {
+  grid-column: 1 / -1;
+  margin: 10px 0 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--brand);
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 6px;
+}

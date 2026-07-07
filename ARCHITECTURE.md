@@ -24,14 +24,12 @@ macromodels/
   assets/js/i18n.js     [FRAMEWORK] common strings + t()/setLang machinery
   assets/js/charts.js   [FRAMEWORK] Plotly helpers
   assets/js/core.js     [FRAMEWORK] page engine (params UI, scenarios, exports)
-  assets/js/pages/longrun.js   [LONGRUN]  imports its 3 models, calls initPage
-  assets/js/pages/shortrun.js  [SHORTRUN] imports its 3 models, calls initPage
-  assets/js/models/solow.js      [LONGRUN]
-  assets/js/models/labor.js      [LONGRUN]
-  assets/js/models/inflation.js  [LONGRUN]
-  assets/js/models/okun.js       [SHORTRUN]  (ch. 9 short-run intro + Okun)
-  assets/js/models/iscurve.js    [SHORTRUN]  (ch. 11)
-  assets/js/models/mppc.js       [SHORTRUN]  (ch. 12 MP + Phillips + full short-run model)
+  assets/js/pages/longrun.js   [LONGRUN]  imports the integrated model, calls initPage
+  assets/js/pages/shortrun.js  [SHORTRUN] imports the integrated model, calls initPage
+  assets/js/models/longrun.js    [LONGRUN]   (ch. 5 + 7 + 8 merged: one integrated
+                                              long-run model — Solow + labor market + inflation)
+  assets/js/models/shortrun.js   [SHORTRUN]  (ch. 9 + 11 + 12 merged: one integrated
+                                              business-cycle model — IS + MP + Phillips + Okun)
   tests/test-models.mjs [VERIFY] Node tests of compute() functions
   README.md             [FRAMEWORK]
 ```
@@ -94,6 +92,17 @@ No DOM, no i18n, no Plotly inside `compute`. It must run in Node as-is.
 `charts.js` styles traces by `scenario` (1 = blue family, 2 = orange family) and
 renders into a `.plot-card`. Every plot card gets a PNG download button (uses
 `Plotly.downloadImage`, filename `<modelId>-<plotId>.png`, scale: 2).
+
+## Integrated single-model pages (v2)
+Each page now hosts ONE integrated model (`models.length === 1`; the tab bar
+auto-hides). To organize long lists, entries support group subheaders:
+- `params[i].groupKey` / `scalars[i].groupKey` — an i18n key; when it changes
+  from the previous entry, a subheader row is inserted (define the key in
+  `strings`). Order entries so same-group items are contiguous.
+- `plots[i].groupKey` — full-width heading in the plot grid.
+- `equations` entries may be KaTeX strings OR `{ headingKey: 'eqgroup.x' }`
+  group-heading markers.
+Charts default to `dragmode:'pan'` with scroll-wheel zoom (config in charts.js).
 
 ## core.js responsibilities (framework)
 - `initPage({ pageId: 'longrun'|'shortrun', models: [mod, ...] })`:

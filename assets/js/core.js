@@ -122,6 +122,10 @@ export function initPage({ pageId, models }) {
 
   function renderTabBar() {
     tabBar.innerHTML = '';
+    if (models.length < 2) {
+      tabBar.style.display = 'none';
+      return;
+    }
     models.forEach((m) => {
       const active = m.id === activeId;
       const tab = el(
@@ -235,7 +239,14 @@ function mountModel(model, container, modelState) {
 
   // ---- plot containers (created once, updated via Plotly.react) ----
   const plotContainers = new Map();
+  let lastPlotGroup = null;
   model.plots.forEach((pd) => {
+    if (pd.groupKey && pd.groupKey !== lastPlotGroup) {
+      lastPlotGroup = pd.groupKey;
+      plotGrid.appendChild(
+        el('h3', { class: 'plot-group-heading', 'data-i18n': pd.groupKey }, [t(pd.groupKey)])
+      );
+    }
     const card = el('div', { class: 'plot-card' });
     const head = el('div', { class: 'plot-card-head' }, [
       el('h3', { 'data-i18n': pd.titleKey }, [t(pd.titleKey)]),
@@ -316,7 +327,16 @@ function buildParamsTable(model, modelState, notifyChange) {
   const listeners = [];
   const notify = () => listeners.forEach((cb) => cb());
 
+  let lastGroup = null;
   model.params.forEach((param) => {
+    if (param.groupKey && param.groupKey !== lastGroup) {
+      lastGroup = param.groupKey;
+      tbody.appendChild(
+        el('tr', { class: 'param-group-row' }, [
+          el('td', { colspan: '3', class: 'param-group-cell', 'data-i18n': param.groupKey }, [t(param.groupKey)]),
+        ])
+      );
+    }
     const row = el('tr');
     const labelCell = el('td', { class: 'param-label-cell' }, [
       el('div', { class: 'param-latex', 'data-katex': param.latex }),
@@ -417,7 +437,16 @@ function buildEndoTable(model, out1, out2) {
     ]),
   ]);
   const tbody = el('tbody');
+  let lastGroup = null;
   model.scalars.forEach((sc) => {
+    if (sc.groupKey && sc.groupKey !== lastGroup) {
+      lastGroup = sc.groupKey;
+      tbody.appendChild(
+        el('tr', { class: 'endo-group-row' }, [
+          el('td', { colspan: '5', class: 'endo-group-cell', 'data-i18n': sc.groupKey }, [t(sc.groupKey)]),
+        ])
+      );
+    }
     const v1 = out1.scalars[sc.key];
     const v2 = out2.scalars[sc.key];
     const delta = v2 - v1;
@@ -446,7 +475,13 @@ function buildEndoTable(model, out1, out2) {
 
 function renderEquations(model, mount) {
   mount.innerHTML = '';
-  model.equations.forEach((eqStr) => {
+  model.equations.forEach((eq) => {
+    // Entries may be KaTeX strings or {headingKey} group-heading markers.
+    if (eq && typeof eq === 'object' && eq.headingKey) {
+      mount.appendChild(el('h3', { class: 'equation-group-heading', 'data-i18n': eq.headingKey }, [t(eq.headingKey)]));
+      return;
+    }
+    const eqStr = eq;
     const div = el('div', { class: 'equation-block' });
     mount.appendChild(div);
     if (window.katex) {
