@@ -573,7 +573,6 @@ export default {
     '\\dfrac{\\Delta M}{P\\,Y} = \\dfrac{\\bar{g}_M}{\\bar{V}}\\qquad\\text{(inflation tax)}',
   ],
 
-  noteKey: 'model.longrun.note',
 
   strings: {
     en: {
@@ -678,7 +677,6 @@ export default {
       'trace.lr.piBar': 'Inflation π',
       'trace.lr.iNom': 'Nominal rate i',
 
-      'model.longrun.note': 'This is ONE consistent economy. The Solow steady state fixes aggregate capital K* and output Y*; the labor-demand curve is the marginal product of labor evaluated at that K*, and the quantity theory uses Ȳ = Y* with real-output growth g_Y = n̄. The Fisher real rate is the Solow steady-state real interest rate R* = MPK = α·(n̄+d̄)/s̄ (Ch. 8 §8.3: “in the long run the real interest rate equals the marginal product of capital”). Because MPK is large in this calibration, the implied nominal rate i is large too — that is model-consistent, not an error. Every growth-rate relation and the Fisher equation are shown as approximations (with the exact identities alongside): the site displays the book’s additive approximations π ≈ ḡ_M + ḡ_V − ḡ_Y and i ≈ R + π, which are accurate for small rates.',
     },
     es: {
       'model.longrun.title': 'El modelo de largo plazo — Crecimiento, trabajo e inflación (integrado)',
@@ -776,7 +774,6 @@ export default {
       'trace.lr.piBar': 'Inflación π',
       'trace.lr.iNom': 'Tasa nominal i',
 
-      'model.longrun.note': 'Esta es UNA economía consistente. El estado estacionario de Solow fija el capital agregado K* y el producto Y*; la curva de demanda de trabajo es el producto marginal del trabajo evaluado en ese K*, y la teoría cuantitativa usa Ȳ = Y* con crecimiento del producto g_Y = n̄. La tasa real de Fisher es la tasa de interés real de estado estacionario de Solow R* = PMgK = α·(n̄+d̄)/s̄ (cap. 8 §8.3: “en el largo plazo la tasa de interés real es igual al producto marginal del capital”). Como el PMgK es alto en esta calibración, la tasa nominal i implícita también es alta: eso es consistente con el modelo, no un error. Toda relación de tasas de crecimiento y la ecuación de Fisher se muestran como aproximaciones (con las identidades exactas al lado): el sitio muestra las aproximaciones aditivas del libro π ≈ ḡ_M + ḡ_V − ḡ_Y e i ≈ R + π, precisas para tasas pequeñas.',
     },
   },
 };

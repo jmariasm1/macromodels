@@ -449,7 +449,6 @@ export default {
     'u_t - \\bar{u} \\approx -\\tfrac{1}{2}\\,\\tilde{Y}_t',
   ],
 
-  noteKey: 'model.shortrun.note',
 
   // ─────────────────────────────────────────────────────────────────────────
   // i18n — complete en / es for every key
@@ -545,7 +544,6 @@ export default {
       'trace.shortrun.unemp': 'Unemployment u_t',
       'trace.shortrun.ubar': 'Natural rate ū',
 
-      'model.shortrun.note': 'This is the complete short-run model of the business cycle, chaining four blocks. Firms’ spending gives the IS curve, which turns the real interest rate into an output gap Ỹ. The central bank sets that real rate through the MP curve (sticky inflation lets it move R one-for-one). The Phillips curve turns the gap into a change in inflation, carried forward by adaptive expectations, and Okun’s law maps the gap into unemployment. A temporary tightening (R = R′ > r̄) opens a recession that pulls inflation down period by period — the Volcker disinflation — and when the bank returns R to r̄, output snaps back to zero and inflation stabilises at its new, lower level. Okun’s law is an empirical regularity (hence the ≈), not an accounting identity.',
     },
     es: {
       'model.shortrun.title': 'El modelo de corto plazo del ciclo económico',
@@ -637,7 +635,6 @@ export default {
       'trace.shortrun.unemp': 'Desempleo u_t',
       'trace.shortrun.ubar': 'Tasa natural ū',
 
-      'model.shortrun.note': 'Este es el modelo completo de corto plazo del ciclo económico, que encadena cuatro bloques. El gasto de los agentes da la curva IS, que convierte la tasa de interés real en una brecha del producto Ỹ. El banco central fija esa tasa real mediante la curva MP (la inflación rígida le permite mover R uno a uno). La curva de Phillips convierte la brecha en un cambio de la inflación, propagado por las expectativas adaptativas, y la ley de Okun traduce la brecha en desempleo. Un endurecimiento temporal (R = R′ > r̄) abre una recesión que reduce la inflación período a período —la desinflación de Volcker— y, cuando el banco regresa R a r̄, el producto vuelve a cero y la inflación se estabiliza en su nuevo nivel más bajo. La ley de Okun es una regularidad empírica (de ahí el ≈), no una identidad contable.',
     },
   },
 };

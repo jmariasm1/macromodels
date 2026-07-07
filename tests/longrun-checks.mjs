@@ -222,7 +222,7 @@ test('longrun: module contract (strings, scalars, plots, groups) is complete', (
   }
   for (const lang of ['en', 'es']) {
     assert.ok(model.strings[lang][model.titleKey], `${lang}:${model.titleKey}`);
-    assert.ok(model.strings[lang][model.noteKey], `${lang}:${model.noteKey}`);
+    if (model.noteKey) assert.ok(model.strings[lang][model.noteKey], `${lang}:${model.noteKey}`);
   }
   // equation heading markers must resolve in both dictionaries
   for (const eq of model.equations) {
