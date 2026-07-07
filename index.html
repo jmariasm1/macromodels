@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MacroModels</title>
+<meta name="description" content="Modelos macroeconómicos interactivos — largo y corto plazo. Interactive macroeconomic models based on Charles I. Jones, Macroeconomics (6th ed.)." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231e3a8a'/%3E%3Cpath d='M6 23 L12 15 L17 19 L26 8' stroke='%23ffffff' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='26' cy='8' r='2.1' fill='%23ea580c'/%3E%3C/svg%3E" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+
+<header class="site-header">
+  <a class="brand" href="index.html">
+    <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect width="32" height="32" rx="7" fill="#1e3a8a"/>
+      <path d="M6 23 L12 15 L17 19 L26 8" stroke="#ffffff" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="26" cy="8" r="2.1" fill="#ea580c"/>
+    </svg>
+    <span>MacroModels</span>
+  </a>
+  <nav class="site-nav" aria-label="Primary">
+    <a class="nav-pill is-active" href="index.html" data-i18n="nav.home">Inicio</a>
+    <a class="nav-pill" href="long-run.html" data-i18n="nav.longrun">Largo Plazo</a>
+    <a class="nav-pill" href="short-run.html" data-i18n="nav.shortrun">Corto Plazo</a>
+  </nav>
+  <div class="lang-toggle" role="group" aria-label="Language / Idioma">
+    <button type="button" id="lang-es" aria-pressed="true">ES</button>
+    <button type="button" id="lang-en" aria-pressed="false">EN</button>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <h1 data-i18n="landing.hero.title">Aprende macroeconomía cambiando los números</h1>
+    <p class="hero-body" data-i18n="landing.hero.body">Modelos interactivos del libro de Jones: ajusta los parámetros, compara dos escenarios lado a lado y observa cómo se actualizan al instante las ecuaciones, tablas y gráficos.</p>
+    <p class="course-line" data-i18n="course.line">Macroeconomía General — EC0113 / MS1002 · Universidad EAFIT · Prof. José Miguel Arias Mejía</p>
+    <p class="course-line" data-i18n="site.subtitle">Modelos macroeconómicos interactivos — largo y corto plazo</p>
+  </section>
+
+  <section class="cards-grid">
+    <section class="big-card longrun-card">
+      <div class="big-card-head">
+        <h2 data-i18n="landing.card.longrun.title">Largo Plazo</h2>
+        <span class="chapters-label">Ch. 5 · 7 · 8</span>
+      </div>
+      <p data-i18n="landing.card.longrun.desc">Crecimiento, mercado laboral e inflación a lo largo de décadas: cómo se enriquecen las economías y por qué suben los precios.</p>
+      <ul>
+        <li><a href="long-run.html#solow"><span class="chapter-badge">Ch. 5</span> <span data-i18n="landing.model.solow">Modelo de crecimiento de Solow</span></a></li>
+        <li><a href="long-run.html#labor"><span class="chapter-badge">Ch. 7</span> <span data-i18n="landing.model.labor">Mercado laboral</span></a></li>
+        <li><a href="long-run.html#inflation"><span class="chapter-badge">Ch. 8</span> <span data-i18n="landing.model.inflation">Crecimiento monetario e inflación</span></a></li>
+      </ul>
+      <a class="cta card-stretch-link" href="long-run.html" data-i18n="landing.card.cta">Explorar modelos</a>
+    </section>
+
+    <section class="big-card shortrun-card">
+      <div class="big-card-head">
+        <h2 data-i18n="landing.card.shortrun.title">Corto Plazo</h2>
+        <span class="chapters-label">Ch. 9 · 11 · 12</span>
+      </div>
+      <p data-i18n="landing.card.shortrun.desc">Ciclos económicos, brechas de producto, demanda agregada y política monetaria: por qué las economías tienen auges y recesiones.</p>
+      <ul>
+        <li><a href="short-run.html#okun"><span class="chapter-badge">Ch. 9</span> <span data-i18n="landing.model.okun">Producto, crecimiento y ley de Okun</span></a></li>
+        <li><a href="short-run.html#iscurve"><span class="chapter-badge">Ch. 11</span> <span data-i18n="landing.model.iscurve">La curva IS</span></a></li>
+        <li><a href="short-run.html#mppc"><span class="chapter-badge">Ch. 12</span> <span data-i18n="landing.model.mppc">Política monetaria y curva de Phillips</span></a></li>
+      </ul>
+      <a class="cta card-stretch-link" href="short-run.html" data-i18n="landing.card.cta">Explorar modelos</a>
+    </section>
+  </section>
+
+  <section class="howto">
+    <h2 data-i18n="landing.howto.title">Cómo usar este sitio</h2>
+    <div class="howto-steps">
+      <div class="howto-step">
+        <span class="step-num" aria-hidden="true">1</span>
+        <h3 data-i18n="landing.howto.step1.title">Elige un modelo</h3>
+        <p data-i18n="landing.howto.step1.body">Selecciona Largo Plazo o Corto Plazo y luego una pestaña de modelo.</p>
+      </div>
+      <div class="howto-step">
+        <span class="step-num" aria-hidden="true">2</span>
+        <h3 data-i18n="landing.howto.step2.title">Set 1 = escenario base</h3>
+        <p data-i18n="landing.howto.step2.body">Ajusta los deslizadores del Set 1 al escenario que quieras como base.</p>
+      </div>
+      <div class="howto-step">
+        <span class="step-num" aria-hidden="true">3</span>
+        <h3 data-i18n="landing.howto.step3.title">Copia y cambia algo</h3>
+        <p data-i18n="landing.howto.step3.body">Haz clic en "Copiar 1→2" y luego cambia un solo parámetro en el Set 2.</p>
+      </div>
+      <div class="howto-step">
+        <span class="step-num" aria-hidden="true">4</span>
+        <h3 data-i18n="landing.howto.step4.title">Compara y exporta</h3>
+        <p data-i18n="landing.howto.step4.body">Lee las tablas y gráficos, luego exporta como imagen, CSV o Excel.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-lines">
+    <span class="footer-course" data-i18n="course.line">Macroeconomía General — EC0113 / MS1002 · Universidad EAFIT · Prof. José Miguel Arias Mejía</span>
+    <span data-i18n="course.book">Charles I. Jones, Macroeconomics, 6.ª edición, W.W. Norton</span>
+  </div>
+  <div class="footer-lines">
+    <span data-i18n="footer.rights">Para uso educativo en Macroeconomía General.</span>
+    <span data-i18n="footer.builtWith">Construido con Plotly, KaTeX y SheetJS.</span>
+  </div>
+</footer>
+
+<script type="module">
+  import { getLang, setLang, onLangChange, applyI18n } from './assets/js/i18n.js';
+
+  function syncLangButtons() {
+    const lang = getLang();
+    document.getElementById('lang-es').setAttribute('aria-pressed', String(lang === 'es'));
+    document.getElementById('lang-en').setAttribute('aria-pressed', String(lang === 'en'));
+  }
+  document.getElementById('lang-es').addEventListener('click', () => setLang('es'));
+  document.getElementById('lang-en').addEventListener('click', () => setLang('en'));
+  onLangChange(() => { syncLangButtons(); applyI18n(document); });
+  syncLangButtons();
+  applyI18n(document);
+</script>
+</body>
+</html>
