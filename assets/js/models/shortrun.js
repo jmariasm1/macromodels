@@ -119,7 +119,9 @@ export default {
     const oPersist = Math.round(p.oPersist) === 1;
 
     // Composite (benchmark) aggregate-demand shock: shares − 1 (eq. 11.12 intercept).
-    const abarBase = abar_c + abar_i + abar_g + abar_ex - abar_im - 1;
+    // Round away float noise (e.g. 0.66+0.17+0.20+0.12−0.15−1 = −1.1e−16) so a
+    // benchmark economy sits at exactly ā = 0 and Ỹ = 0.
+    const abarBase = Math.round((abar_c + abar_i + abar_g + abar_ex - abar_im - 1) * 1e12) / 1e12;
     const m = 1 / (1 - xbar); // multiplier 1/(1−x̄)
 
     // Per-period exogenous paths.

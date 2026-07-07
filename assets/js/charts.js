@@ -122,7 +122,46 @@ export function renderPlot(container, descriptor, out1, out2, p1, p2) {
   const built = descriptor.build(out1, out2, p1, p2, t) || { traces: [], layout: {} };
   const traces = (built.traces || []).map(styleTrace);
   const layout = buildLayout(descriptor, built.layout || {});
+  fixDegenerateYRange(traces, layout);
   window.Plotly.react(container, traces, layout, BASE_CONFIG);
+}
+
+/**
+ * If every y value across all traces is constant up to numerical noise,
+ * Plotly's autorange zooms into the noise (e.g. a 1e-16 band around zero).
+ * Replace it with an explicit, padded range so flat series read as flat.
+ */
+function fixDegenerateYRange(traces, layout) {
+  if (layout.yaxis && layout.yaxis.range) return; // explicit range wins
+  let min = Infinity;
+  let max = -Infinity;
+  for (const tr of traces) {
+    if (!tr.y) continue;
+    for (const v of tr.y) {
+      if (typeof v === 'number' && Number.isFinite(v)) {
+        if (v < min) min = v;
+        if (v > max) max = v;
+      }
+    }
+  }
+  if (!Number.isFinite(min) || !Number.isFinite(max)) return;
+  const span = max - min;
+  const scale = Math.max(Math.abs(min), Math.abs(max));
+  if (span > Math.max(1e-9, scale * 1e-9)) return; // real variation — leave autorange
+  let center = (min + max) / 2;
+  if (Math.abs(center) < 1e-9) center = 0; // snap float noise to zero
+  const isLog = layout.yaxis && layout.yaxis.type === 'log';
+  if (isLog) {
+    if (center <= 0) return;
+    const c = Math.log10(center);
+    layout.yaxis = Object.assign({}, layout.yaxis, { range: [c - 0.5, c + 0.5], autorange: false });
+    return;
+  }
+  const pad = Math.max(1, Math.abs(center) * 0.5);
+  layout.yaxis = Object.assign({}, layout.yaxis, {
+    range: [center - pad, center + pad],
+    autorange: false,
+  });
 }
 
 /** Download the current plot in `container` as a PNG at 2x scale. */
