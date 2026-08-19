@@ -432,24 +432,8 @@ table.data td.neg { color: var(--danger); }
 }
 
 .exam-page canvas { display: block; width: 100%; height: auto; }
-
-.exam-page .wm {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: "Trebuchet MS", sans-serif;
-  font-size: clamp(18px, 3.4vw, 34px);
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  color: rgba(157, 47, 33, 0.14);
-  transform: rotate(-26deg);
-  white-space: pre;
-  text-align: center;
-  line-height: 1.7;
-}
+/* The watermark is painted into the bitmap by exam.js, not overlaid here,
+   so a page lifted off the canvas still carries the student ID. */
 
 .noselect {
   user-select: none;

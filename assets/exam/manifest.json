@@ -20,12 +20,6 @@
    "startUtc": "2026-08-25T20:00:00Z",
    "endUtc": "2026-08-25T23:00:00Z",
    "label": "Tuesday 25 August 2026, 15:00-18:00 (Colombia)"
-  },
-  {
-   "startUtc": "2026-08-19T16:57:00Z",
-   "endUtc": "2026-08-19T17:57:00Z",
-   "label": "TEMPORARY test window 19 Aug 11:57-12:57 (Colombia)",
-   "temp": true
   }
  ],
  "subjects": {

@@ -218,6 +218,27 @@ function setHeader(open) {
   if (tools) tools.style.display = open ? '' : 'none';
 }
 
+/**
+ * Stamp the watermark INTO the bitmap, not over it as a DOM overlay. A page
+ * lifted off the canvas with developer tools then still carries the ID of the
+ * student who opened it, so a leaked copy stays traceable.
+ */
+function stampWatermark(ctx, w, h, text) {
+  const size = Math.max(18, Math.round(w / 26));
+  ctx.save();
+  ctx.globalAlpha = 0.13;
+  ctx.fillStyle = '#9d2f21';
+  ctx.font = `700 ${size}px "Trebuchet MS", "Segoe UI", sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.translate(w / 2, h / 2);
+  ctx.rotate((-26 * Math.PI) / 180);
+  const step = size * 3.4;
+  const reach = Math.ceil(Math.hypot(w, h) / step / 2) + 1;
+  for (let i = -reach; i <= reach; i += 1) ctx.fillText(text, 0, i * step);
+  ctx.restore();
+}
+
 async function paint(pages, key, baseUrl) {
   const h = host();
   h.innerHTML = '';
@@ -229,16 +250,15 @@ async function paint(pages, key, baseUrl) {
     holder.style.maxWidth = `${860 * state.zoom}px`;
     const canvas = el('canvas');
     holder.appendChild(canvas);
-    const wm = el('div', 'wm');
-    wm.textContent = `${wmText}\n${wmText}\n${wmText}`;
-    holder.appendChild(wm);
     h.appendChild(holder);
 
     // eslint-disable-next-line no-await-in-loop
     const bmp = await decryptPage(`${baseUrl}p${i}.bin`, key);
     canvas.width = bmp.width;
     canvas.height = bmp.height;
-    canvas.getContext('2d').drawImage(bmp, 0, 0);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(bmp, 0, 0);
+    stampWatermark(ctx, canvas.width, canvas.height, wmText);
     bmp.close();
   }
   setHeader(true);
