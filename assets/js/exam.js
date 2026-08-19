@@ -63,10 +63,18 @@ async function sha256Hex(text) {
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+// Server clock, captured from the Date header of the manifest response and
+// carried forward with performance.now(), which is monotonic and immune to the
+// user changing their system clock.
+let serverClock = null;
+
 function getManifest() {
   if (!manifestPromise) {
     manifestPromise = fetch(MANIFEST_URL, { cache: 'no-store' }).then((r) => {
       if (!r.ok) throw new Error('manifest');
+      const d = r.headers.get('date');
+      const ms = d ? Date.parse(d) : NaN;
+      if (Number.isFinite(ms)) serverClock = { at: performance.now(), ms };
       return r.json();
     });
   }
@@ -74,19 +82,16 @@ function getManifest() {
 }
 
 /**
- * Current time according to the SERVER (the Date header of a same-origin
- * request), falling back to the local clock when that is unavailable.
+ * Current time according to the SERVER, or null when it could not be
+ * established. It deliberately never falls back to the local clock: that is
+ * under the student's control, and an earlier version that did fall back could
+ * be opened outside the exam window just by changing the system clock and
+ * blocking one request. The reading rides on the manifest fetch, which is
+ * mandatory, so blocking it breaks loading rather than opening the gate.
  */
-async function serverNow() {
-  try {
-    const r = await fetch(MANIFEST_URL, { method: 'HEAD', cache: 'no-store' });
-    const d = r.headers.get('date');
-    if (d) {
-      const ms = Date.parse(d);
-      if (Number.isFinite(ms)) return new Date(ms);
-    }
-  } catch (_) { /* offline or blocked — fall through */ }
-  return new Date();
+function serverNow() {
+  if (!serverClock) return null;
+  return new Date(serverClock.ms + (performance.now() - serverClock.at));
 }
 
 function insideWindow(now, windows) {
@@ -297,8 +302,9 @@ async function open(id) {
 
   const isTest = man.testHashes?.includes(await sha256Hex(id));
   if (!(isTest && TEST_BYPASS_WINDOW)) {
-    const now = await serverNow();
-    if (!insideWindow(now, man.windows)) {
+    const now = serverNow();
+    // No trustworthy clock means no exam: fail closed, never open.
+    if (!now || !insideWindow(now, man.windows)) {
       showUnavailable('exam.window');
       return;
     }
