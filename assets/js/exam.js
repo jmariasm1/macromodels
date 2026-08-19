@@ -1,20 +1,16 @@
 // exam.js — the gated exam viewer that lives in the left-hand pane.
 //
 // How access works
-//   1. The student types the access key IN FULL — the prefix and then their ID,
-//      e.g. "macro1000382896". Typing the bare ID is refused: the prefix is part
-//      of the key, not something the page adds on their behalf. The exam VERSION
-//      is the digital root of the ID (add the digits, repeat until one digit
-//      is left, 1..9).
-//   2. A passphrase built as prefix + [session word] + ID (e.g. "macro123456789")
+//   1. The student types their access key IN FULL. Its exact form is told to the
+//      class by the professor and is deliberately NOT described anywhere in this
+//      code, in the manifest or in the interface. The exam VERSION is the digital
+//      root of the digits inside it (repeat until one digit is left, 1..9).
+//   2. Whatever was typed — lower-cased, spaces removed — IS the passphrase. It
 //      is stretched with PBKDF2-SHA256 (200k iterations) into a key-encryption
-//      key, which is used to try to unwrap the content key of the requested
-//      version. Only a student whose ID is on the class list has an entry that
-//      authenticates, so no plaintext list of student IDs is published anywhere
-//      and the exam pages cannot be decrypted without one.
-//      NOTE: when the build carries no session word the passphrase is computable
-//      from the ID alone, so it changes the keys but does not stop a student who
-//      knows their own ID from decrypting their own version ahead of time.
+//      key and tried against every wrapped entry. The page has no idea what the
+//      key should look like, so it can neither check it nor leak it: a wrong key
+//      simply fails to unwrap anything, exactly like an ID that is not on the
+//      class list.
 //   3. Outside the scheduled exam windows nothing is decrypted at all. The clock
 //      comes from the server's own Date response header, not the local machine.
 //
@@ -33,9 +29,7 @@ const MANIFEST_URL = 'assets/exam/manifest.json';
 const TEST_BYPASS_WINDOW = true;   // the professor's test codes ignore the schedule
 
 let manifestPromise = null;
-let needsWord = false;   // set from the manifest once it loads
-let kdfPrefix = 'macro';  // ditto; only used for the wording on the gate
-let state = { subject: null, id: null, version: null, examLang: null, word: '', zoom: 1 };
+let state = { subject: null, id: null, version: null, examLang: null, key: '', zoom: 1 };
 
 /* ----------------------------------------------------------------- utils */
 
@@ -117,17 +111,6 @@ function insideWindow(now, windows) {
 
 /* ------------------------------------------------------------ decryption */
 
-/**
- * The key is derived from a PASSPHRASE, not from the bare ID:
- *     prefix + [session word] + ID          e.g. "macro123456789"
- * The prefix comes from the manifest. When the manifest sets requiresWord, the
- * gate also asks for a word that the professor says out loud at the start of the
- * session, and that word sits between the prefix and the ID.
- */
-function passphraseFor(man, id, word) {
-  return `${man.kdf.prefix ?? ''}${word || ''}${id}`;
-}
-
 async function deriveKek(passphrase, saltB64, iterations) {
   const base = await crypto.subtle.importKey(
     'raw', new TextEncoder().encode(passphrase), 'PBKDF2', false, ['deriveKey'],
@@ -183,7 +166,7 @@ function showGate(msg, cls) {
   h.innerHTML = '';
   const box = el('div', 'gate');
   box.appendChild(el('h3', null, t('exam.gate.title')));
-  box.appendChild(el('p', null, t('exam.gate.help', { prefix: kdfPrefix })));
+  box.appendChild(el('p', null, t('exam.gate.help')));
 
   const form = el('form');
   const input = el('input');
@@ -191,39 +174,21 @@ function showGate(msg, cls) {
   input.autocomplete = 'off';
   input.autocapitalize = 'off';
   input.spellcheck = false;
-  input.placeholder = t('exam.gate.placeholder', { prefix: kdfPrefix });
+  input.placeholder = t('exam.gate.placeholder');
   input.setAttribute('aria-label', t('exam.gate.title'));
-
-  // Only asked for when the build was made with a session word.
-  let wordInput = null;
-  if (needsWord) {
-    wordInput = el('input');
-    wordInput.type = 'text';
-    wordInput.autocomplete = 'off';
-    wordInput.placeholder = t('exam.gate.word');
-    wordInput.setAttribute('aria-label', t('exam.gate.word'));
-  }
 
   const go = el('button', 'btn primary', t('exam.gate.open'));
   go.type = 'submit';
   form.appendChild(input);
-  if (wordInput) form.appendChild(wordInput);
   form.appendChild(go);
   form.addEventListener('submit', (ev) => {
     ev.preventDefault();
     const typed = normalise(input.value);
     if (!typed) return;
-    const word = wordInput ? normalise(wordInput.value) : '';
-    if (needsWord && !word) return;
     go.disabled = true;
-    open(typed, word).finally(() => { go.disabled = false; });
+    open(typed).finally(() => { go.disabled = false; });
   });
   box.appendChild(form);
-  if (needsWord) {
-    const hint = el('p', null, t('exam.gate.wordHelp'));
-    hint.style.cssText = 'margin:10px 0 0;font-size:0.78rem';
-    box.appendChild(hint);
-  }
 
   const m = el('div', `msg${cls ? ` ${cls}` : ''}`, msg || '');
   box.appendChild(m);
@@ -319,12 +284,12 @@ async function paint(pages, key, baseUrl) {
 
 /* ------------------------------------------------------------------ open */
 
-async function open(typed, word = '') {
+async function open(typed) {
   const id = digitsOnly(typed);
   const version = digitalRoot(id);
   state.id = id;
   state.version = version;
-  state.word = word;
+  state.key = typed;
 
   if (state.subject !== 'longrun') {          // the short-run exam does not exist yet
     showUnavailable('exam.notWritten');
@@ -340,14 +305,8 @@ async function open(typed, word = '') {
     return;
   }
 
-  // The access key has to be typed IN FULL: the prefix followed by the ID and
-  // nothing else. Typing the bare ID is refused — the prefix is part of the key,
-  // not something the page adds for you.
-  const prefix = (man.kdf?.prefix || '').toLowerCase();
-  if (typed !== `${prefix}${id}`) {
-    showGate(t('exam.gate.format', { prefix }), 'err');
-    return;
-  }
+  // The page never checks the SHAPE of the access key — it does not know it, and
+  // saying so would publish it. A malformed key simply fails to unwrap below.
   if (!id || version < 1 || version > 9) {
     showUnavailable('exam.badid');
     return;
@@ -378,7 +337,7 @@ async function open(typed, word = '') {
 
   let key = null;
   try {
-    const kek = await deriveKek(passphraseFor(man, id, word), man.kdf.salt, man.kdf.iterations);
+    const kek = await deriveKek(typed, man.kdf.salt, man.kdf.iterations);
     key = await unwrapContentKey(kek, man.wrapped, lang);
   } catch (_) { key = null; }
 
@@ -434,7 +393,7 @@ export function initExam({ subject }) {
       b.addEventListener('click', () => {
         state.examLang = code;
         [...seg.children].forEach((c) => c.setAttribute('aria-pressed', String(c === b)));
-        if (state.id) open(state.id, state.word);
+        if (state.key) open(state.key);
       });
       seg.appendChild(b);
     });
@@ -455,20 +414,11 @@ export function initExam({ subject }) {
 
     const close = el('button', 'btn tiny', t('exam.close'));
     close.type = 'button';
-    close.addEventListener('click', () => { state.id = null; state.version = null; showGate(); });
+    close.addEventListener('click', () => { state.key = ''; showGate(); });
     tools.appendChild(close);
     tools.style.display = 'none';
   }
 
   showGate();
-  getManifest().then((man) => {
-    const required = !!man.kdf?.requiresWord;
-    const prefix = (man.kdf?.prefix || '').toLowerCase();
-    if (required !== needsWord || prefix !== kdfPrefix) {
-      needsWord = required;
-      kdfPrefix = prefix;
-      if (!state.id && host()?.querySelector('.gate')) showGate();
-    }
-  }).catch(() => { /* the gate still works; open() reports the failure */ });
   onLangChange(() => { if (!state.id) showGate(); setHeader(!!host()?.querySelector('.exam-page')); });
 }

@@ -25,22 +25,19 @@ parameter panel; every chart and the table have a `PNG` button.
 
 ## The exam viewer
 
-A student types their access key (`macro` + their ID); the **version of the exam
-is the digital root of the ID** (add the digits, repeat until one digit is left: `123456789 → 45 → 9`).
+A student types their access key; the **version of the exam is the digital root
+of the ID inside it** (add the digits, repeat until one digit is left: `123456789 → 45 → 9`).
 
-- A **passphrase** built as `prefix + [session word] + ID` (by default
-  `macro` + ID, e.g. `macro1000382896`) is stretched with PBKDF2-SHA256
-  (200 000 iterations) into the key that unwraps the content key of that version.
-  The student types that key **in full** — the page does not add the prefix for
-  them, so entering the bare ID is refused.
+- The access key is a **secret word followed by the student's ID**. It is set at
+  build time with `build_site_exam.py --key WORD`, announced to the class in
+  person, and **never written to the site** — not into the manifest, not into the
+  interface, not into this repository. The browser simply hashes whatever was
+  typed with PBKDF2-SHA256 (200 000 iterations) and tries to unwrap the content
+  key, so it can neither check the key's shape nor give it away. A wrong key
+  fails exactly like an ID that is not on the class list.
   Only IDs on the class list have an entry that authenticates, so **no plaintext
-  list of student IDs is published** and the pages cannot be decrypted without a
-  valid ID.
-- `build_site_exam.py --secret WORD` puts a **session word** into the passphrase.
-  The gate then asks for it too and refuses a wrong or missing one. Without a
-  word the passphrase is computable from the ID, so it rotates the keys but does
-  not stop a student who knows their own ID from decrypting their own version
-  ahead of time — see the warning below.
+  list of student IDs is published** either.
+- Build without `--key` and the access key is the bare ID, with no protection.
 - Outside the scheduled exam windows nothing is decrypted. The clock comes from
   the server's own `Date` response header, not from the student's machine.
 - Pages are shipped as AES-GCM encrypted raster images and painted onto a

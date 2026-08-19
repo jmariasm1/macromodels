@@ -4,9 +4,7 @@
  "kdf": {
   "algorithm": "PBKDF2-SHA256",
   "salt": "oJyRTMLWG8XVyRbJRd6NSg==",
-  "iterations": 200000,
-  "prefix": "macro",
-  "requiresWord": false
+  "iterations": 200000
  },
  "testHashes": [
   "678cbb40343c7d4f628bb85c0b44b6a9c61504a5571096e8d9b43d0cd3fbc71a",

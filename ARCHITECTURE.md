@@ -98,23 +98,20 @@ Language persists in `localStorage['macromodels:lang']`; the default is Spanish.
 ## Exam access model
 
 ```
-passphrase(id)        kdf.prefix + [session word] + id      e.g. "macro1000382896"
+passphrase(id)        <secret word, set with --key> + id
 content_key[V][lang]  32 random bytes; encrypts every page of that edition
 KEK(id)               PBKDF2-HMAC-SHA256(passphrase(id), salt, 200000, dklen=32)
 wrapped[i][lang]      AES-GCM(KEK(id_i), content_key[version(id_i)][lang])
 version(id)           digital root of the ID (1..9)
 ```
 
-`kdf.prefix` and `kdf.requiresWord` come from the manifest. When `requiresWord`
-is set, the gate shows a second field for the session word and refuses a wrong or
-empty one. With no word the passphrase is derivable from the ID alone.
-
-The student types the access key in full (`prefix + ID`); the gate compares what
-was typed against `prefix + digitsOnly(typed)` and refuses anything else, so the
-bare ID does not work. Case and stray spaces are normalised away first. The
-browser then derives `KEK` from the passphrase and tries every wrapped entry;
-exactly one authenticates when the ID is on the class list. The wrapped list is
-shuffled so its order says nothing about who is who.
+**The manifest says nothing about the access key** — no prefix, no length, no
+shape. The word lives only in the `--key` argument used at build time and in what
+the professor tells the class. The browser lower-cases the typed string, strips
+spaces, and hashes it as-is; it never validates the format, because doing so
+would publish it. A wrong key just fails to unwrap, indistinguishable from an ID
+that is not on the class list. The wrapped list is shuffled so its order says
+nothing about who is who.
 
 Time is read from the `Date` header of the manifest response rather than the
 local clock, and the gate fails closed when no server time is available. The two test codes in `manifest.json` (`testHashes`, stored as
