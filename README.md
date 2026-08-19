@@ -25,12 +25,14 @@ parameter panel; every chart and the table have a `PNG` button.
 
 ## The exam viewer
 
-A student types their ID; the **version of the exam is the digital root of that
-number** (add the digits, repeat until one digit is left: `123456789 → 45 → 9`).
+A student types their access key (`macro` + their ID); the **version of the exam
+is the digital root of the ID** (add the digits, repeat until one digit is left: `123456789 → 45 → 9`).
 
 - A **passphrase** built as `prefix + [session word] + ID` (by default
   `macro` + ID, e.g. `macro1000382896`) is stretched with PBKDF2-SHA256
   (200 000 iterations) into the key that unwraps the content key of that version.
+  The student types that key **in full** — the page does not add the prefix for
+  them, so entering the bare ID is refused.
   Only IDs on the class list have an entry that authenticates, so **no plaintext
   list of student IDs is published** and the pages cannot be decrypted without a
   valid ID.

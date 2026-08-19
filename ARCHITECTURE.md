@@ -109,12 +109,15 @@ version(id)           digital root of the ID (1..9)
 is set, the gate shows a second field for the session word and refuses a wrong or
 empty one. With no word the passphrase is derivable from the ID alone.
 
-The browser derives `KEK` from the ID that was typed, then tries every wrapped
-entry; exactly one authenticates when the ID is on the class list. The wrapped
-list is shuffled so its order says nothing about who is who.
+The student types the access key in full (`prefix + ID`); the gate compares what
+was typed against `prefix + digitsOnly(typed)` and refuses anything else, so the
+bare ID does not work. Case and stray spaces are normalised away first. The
+browser then derives `KEK` from the passphrase and tries every wrapped entry;
+exactly one authenticates when the ID is on the class list. The wrapped list is
+shuffled so its order says nothing about who is who.
 
-Time is read from the `Date` header of a same-origin `HEAD` request rather than
-the local clock. The two test codes in `manifest.json` (`testHashes`, stored as
+Time is read from the `Date` header of the manifest response rather than the
+local clock, and the gate fails closed when no server time is available. The two test codes in `manifest.json` (`testHashes`, stored as
 SHA-256) bypass the schedule.
 
 Pages are decrypted to WebP bytes, turned into an `ImageBitmap` and drawn onto a
