@@ -28,11 +28,17 @@ parameter panel; every chart and the table have a `PNG` button.
 A student types their ID; the **version of the exam is the digital root of that
 number** (add the digits, repeat until one digit is left: `123456789 → 45 → 9`).
 
-- The ID is also the **decryption key**. A key-encryption key is derived from it
-  with PBKDF2-SHA256 (200 000 iterations) and used to unwrap the content key of
-  that version. Only IDs on the class list have an entry that authenticates, so
-  **no plaintext list of student IDs is published** and the pages cannot be
-  decrypted without a valid ID.
+- A **passphrase** built as `prefix + [session word] + ID` (by default
+  `macro` + ID, e.g. `macro1000382896`) is stretched with PBKDF2-SHA256
+  (200 000 iterations) into the key that unwraps the content key of that version.
+  Only IDs on the class list have an entry that authenticates, so **no plaintext
+  list of student IDs is published** and the pages cannot be decrypted without a
+  valid ID.
+- `build_site_exam.py --secret WORD` puts a **session word** into the passphrase.
+  The gate then asks for it too and refuses a wrong or missing one. Without a
+  word the passphrase is computable from the ID, so it rotates the keys but does
+  not stop a student who knows their own ID from decrypting their own version
+  ahead of time — see the warning below.
 - Outside the scheduled exam windows nothing is decrypted. The clock comes from
   the server's own `Date` response header, not from the student's machine.
 - Pages are shipped as AES-GCM encrypted raster images and painted onto a
@@ -44,6 +50,29 @@ number** (add the digits, repeat until one digit is left: `123456789 → 45 → 
 This is **deterrence, not DRM**: a student who legitimately opens the exam can
 still extract the pixels with developer tools. It stops casual downloading,
 printing, copying and sharing.
+
+### Warning: this repository is public and its history is permanent
+
+The encrypted pages are committed here, so they can be downloaded from GitHub
+Pages, `raw.githubusercontent.com` and `github.com` alike. That is fine on its
+own — they are ciphertext. The problem is that **a student who knows their own
+ID can decrypt their own version at any time with a short script**, without ever
+loading the site, because the exam window is enforced only by the page's
+JavaScript.
+
+Deleting the files does not fix it: **every previous build stays in the git
+history and is still downloadable at an older commit.** This was verified — a
+page fetched from a superseded commit decrypted with a real student ID and
+matched the current exam byte for byte. Changing the passphrase does not fix it
+either, because the older build still opens under the older rule.
+
+Two things actually protect an exam that has not been sat yet:
+
+1. `--secret WORD` — say the word out loud when the session starts.
+2. **Regenerate the versions with fresh numbers** before the real session, so
+   whatever sits in the history is not the exam anyone takes.
+
+Use both together.
 
 **Master switch:** `assets/exam/manifest.json` → `subjects.longrun.available`.
 Set it to `false` to show the pending notice to everyone; `true` to open it

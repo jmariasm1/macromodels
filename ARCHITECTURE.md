@@ -98,11 +98,16 @@ Language persists in `localStorage['macromodels:lang']`; the default is Spanish.
 ## Exam access model
 
 ```
+passphrase(id)        kdf.prefix + [session word] + id      e.g. "macro1000382896"
 content_key[V][lang]  32 random bytes; encrypts every page of that edition
-KEK(id)               PBKDF2-HMAC-SHA256(id, salt, 200000, dklen=32)
+KEK(id)               PBKDF2-HMAC-SHA256(passphrase(id), salt, 200000, dklen=32)
 wrapped[i][lang]      AES-GCM(KEK(id_i), content_key[version(id_i)][lang])
 version(id)           digital root of the ID (1..9)
 ```
+
+`kdf.prefix` and `kdf.requiresWord` come from the manifest. When `requiresWord`
+is set, the gate shows a second field for the session word and refuses a wrong or
+empty one. With no word the passphrase is derivable from the ID alone.
 
 The browser derives `KEK` from the ID that was typed, then tries every wrapped
 entry; exactly one authenticates when the ID is on the class list. The wrapped
@@ -118,6 +123,14 @@ Pages are decrypted to WebP bytes, turned into an `ImageBitmap` and drawn onto a
 `Ctrl/Cmd+S` are swallowed while an exam is open, and `@media print` blanks the
 page. A watermark carrying the student's ID sits over every page.
 
-**Known limit:** a student who legitimately opens the exam can still recover the
-pixels through developer tools. No client-side scheme prevents that; the design
-targets casual downloading, printing, copying and sharing.
+**Known limits.** A student who legitimately opens the exam can still recover the
+pixels through developer tools. No client-side scheme prevents that.
+
+More importantly, the repository is public and the encrypted pages are committed
+to it, so anyone can fetch them from Pages, `raw.githubusercontent.com` or
+`github.com`, and the window is enforced only here in the browser. A student who
+knows their own ID can therefore decrypt their own version early with a short
+script. Removing the files does not help: every previous build remains in the git
+history at an older commit and still decrypts under the rule that was in force
+then. Only a session word (`--secret`) plus regenerating the versions with fresh
+numbers actually protects an exam that has not been sat.
