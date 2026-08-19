@@ -1,0 +1,13 @@
+# Encrypted exam pages must never be touched by line-ending conversion:
+# a single byte changed makes AES-GCM authentication fail.
+*.bin binary
+*.webp binary
+*.png binary
+*.pdf binary
+
+*.html text eol=lf
+*.css  text eol=lf
+*.js   text eol=lf
+*.mjs  text eol=lf
+*.json text eol=lf
+*.md   text eol=lf

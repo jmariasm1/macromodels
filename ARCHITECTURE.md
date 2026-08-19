@@ -1,168 +1,123 @@
-# Macro Models — Architecture & Contracts (source of truth)
+# Macro Models — architecture
 
-Interactive learning website implementing the long-run and short-run models of
-Charles Jones, *Macroeconomics* (6th ed.) for the General Macroeconomics course
-(EC0113/MS1002, Universidad EAFIT, Prof. José Miguel Arias Mejía).
-Deployed on GitHub Pages: `https://jmariasm1.github.io/macromodels/`.
+Static site, **no build step**. ES modules loaded straight from the HTML.
+CDN libraries (pin these exact URLs): Plotly `2.35.2`, KaTeX `0.16.11`,
+html2canvas `1.4.1`.
 
-## Stack
-- Pure static site. **No build step.** ES modules (`<script type="module">`).
-- CDN libraries (pin these exact URLs in HTML):
-  - Plotly `https://cdn.plot.ly/plotly-2.35.2.min.js` (charts + PNG export)
-  - SheetJS `https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js` (XLSX export)
-  - KaTeX 0.16.11 css+js+auto-render from jsdelivr (equations)
-  - Google Fonts: Inter (400/500/600/700) + JetBrains Mono (numbers, optional)
-- Everything else is hand-written vanilla JS/CSS.
-
-## File layout (ownership — do not touch files owned by another agent)
 ```
 macromodels/
-  index.html            [FRAMEWORK] landing page
-  long-run.html         [FRAMEWORK] thin shell, loads assets/js/pages/longrun.js
-  short-run.html        [FRAMEWORK] thin shell, loads assets/js/pages/shortrun.js
-  assets/css/style.css  [FRAMEWORK]
-  assets/js/i18n.js     [FRAMEWORK] common strings + t()/setLang machinery
-  assets/js/charts.js   [FRAMEWORK] Plotly helpers
-  assets/js/core.js     [FRAMEWORK] page engine (params UI, scenarios, exports)
-  assets/js/pages/longrun.js   [LONGRUN]  imports the integrated model, calls initPage
-  assets/js/pages/shortrun.js  [SHORTRUN] imports the integrated model, calls initPage
-  assets/js/models/longrun.js    [LONGRUN]   (ch. 5 + 7 + 8 merged: one integrated
-                                              long-run model — Solow + labor market + inflation)
-  assets/js/models/shortrun.js   [SHORTRUN]  (ch. 9 + 11 + 12 merged: one integrated
-                                              business-cycle model — IS + MP + Phillips + Okun)
-  tests/test-models.mjs [VERIFY] Node tests of compute() functions
-  README.md             [FRAMEWORK]
+  index.html                landing: language + choice of model set
+  short-run.html            exam viewer | short-run models
+  long-run.html             exam viewer | long-run models
+  assets/css/app.css        design system (warm paper, serif headings, cards)
+  assets/js/i18n.js         string table + t() / setLang() / applyI18n() / fmt()
+  assets/js/charts.js       Plotly styling, rendering and PNG export
+  assets/js/app.js          page engine: params, table, plots, equations, scenarios
+  assets/js/exam.js         the gated exam viewer
+  assets/js/models/*.js     pure model modules (Node-testable)
+  assets/js/pages/*.js      three-line bootstraps
+  assets/exam/manifest.json KDF params, exam windows, page counts, wrapped keys
+  assets/exam/lr/*.bin      AES-GCM encrypted WebP exam pages
+  tests/models.test.mjs     Node checks
 ```
 
-## Model module contract (exact)
-Each file in `assets/js/models/` has a **default export**:
+## Colour convention
+
+Economies are told apart by **colour**: Economy 1 `#2b63d9` (blue), Economy 2
+`#cc5a43` (warm red). Different curves *within* one economy are told apart by
+**line style** — solid, dashed, dotted. `charts.js` applies both from the
+`economy`, `dash` and `role` fields of a trace descriptor.
+
+## Model module contract
+
+Each file in `assets/js/models/` default-exports:
 
 ```js
 export default {
-  id: 'solow',                 // unique, used for storage keys & DOM ids
-  titleKey: 'model.solow.title',
-  chapterLabel: 'Ch. 5',       // shown on the tab badge (string, not translated)
-  strings: { en: { 'model.solow.title': 'Solow Growth Model', ... },
-             es: { 'model.solow.title': 'Modelo de crecimiento de Solow', ... } },
-  // Every i18n key this model needs lives HERE (params, plots, scalars, notes).
-  params: [
-    { key: 'Abar',            // JS identifier, used in compute()
-      latex: '\\bar{A}',      // rendered with KaTeX in the table
-      labelKey: 'param.solow.Abar',   // description string key
-      min: 0.1, max: 5, step: 0.05,
-      def1: 1.0, def2: 1.0,   // defaults for parameter set 1 and 2
-      unit: '' | '%',         // '%' => displayed/entered as percent, stored as decimal
-    }, ...
-  ],
-  T: 100,                     // simulation horizon (periods) if the model has dynamics
-  compute(p) { ... },         // PURE function: {paramKey: number} -> outputs (see below)
-  scalars: [                  // rows of the "Endogenous variables" table, in order
-    { key: 'Kstar', latex: 'K^*', labelKey: 'scalar.solow.Kstar', fmt: 'num'|'pct'|'int' }, ...
-  ],
-  plots: [ /* plot descriptors, see below */ ],
-  equations: [                // KaTeX display-mode strings (language-independent math)
-    'Y_t = \\bar{A} K_t^{\\alpha} L_t^{1-\\alpha}', ...
-  ],
-  noteKey: 'model.solow.note', // 1–3 sentence pedagogical note shown under equations
+  id: 'longrun',
+  titleKey: 'model.lr.title',
+  variants: [{ id, labelKey }],        // optional (short run: IS-MP / IS-LM)
+
+  params: [{
+    key, latex, labelKey, groupKey,    // groupKey starts a new subheading
+    min, max, step, def1, def2,
+    unit: '' | '%',                    // '%' is shown/typed as a percent, stored as a decimal
+    variants: ['ismp'],                // optional: only shown for these variants
+  }],
+
+  compute(p, variant) -> {             // PURE: no DOM, no i18n, no Plotly
+    scalars: { key: number },          // one entry per `scalars` row
+    series:  { name: number[] },       // named arrays used by the plots
+    meta:    { variant },              // optional
+  },
+
+  scalars: [{ key, latex, labelKey, groupKey, fmt: 'num'|'pct'|'int'|'big' }],
+
+  plots: [{
+    id, titleKey, groupKey, xLabelKey, yLabelKey,
+    build(out1, out2, p1, p2, t) -> {
+      traces: [{ x, y, name, economy: 0|1|2, dash?, role?: 'aux', mode?, marker?, type? }],
+      layout: { /* optional Plotly overrides */ },
+    },
+  }],
+
+  equations: [...] | (variant) => [...],   // { headingKey } | { nameKey, tex }
+  strings: { en: {...}, es: {...} },        // every i18n key the model needs
 }
 ```
 
-### compute(p) — pure & Node-testable
-Input: plain object `{Abar: 1, sbar: 0.2, ...}` (all decimals, never percents).
-Output:
-```js
-{ scalars: { Kstar: 12.3, ... },          // one entry per `scalars` row
-  series:  { t: [...], K: [...], Y: [...],      // named arrays, equal length per group
-             kGrid: [...], sY: [...], dK: [...] } }
+`compute()` must run unchanged in Node — `tests/models.test.mjs` imports the
+modules directly.
+
+## app.js responsibilities
+
+`initPage({ pageId, model, examSubject })` builds the parameter panel (grouped,
+two number inputs per row), the endogenous-variables table (Economy 1, Economy 2,
+Δ), the plot grid (one card per plot, group headings, PNG button), and the
+equations panel (KaTeX, one named block per equation). It also wires
+`Copy 1 → 2`, `Reset` and the `Save` / `Load` / `Delete` scenarios stored under
+`localStorage['macromodels:<modelId>:scenarios']`.
+
+Recompute is debounced with `setTimeout`, **not** `requestAnimationFrame`: rAF
+does not fire while the tab is hidden, which would leave the charts stale.
+
+Switching the variant rebuilds the parameters, the plots **and the equations** —
+IS-MP and IS-LM do not share the same equation list.
+
+`initSplit()` handles the collapsible, draggable divider. The collapsed state
+persists in `localStorage['macromodels:examPane']`.
+
+## i18n
+
+`registerStrings({en, es})` merges a model's strings into the table. `t(key, vars)`
+looks up the current language, falls back to English, then to the key itself.
+`applyI18n(root)` translates `[data-i18n]` and `[data-i18n-attr]` nodes.
+Language persists in `localStorage['macromodels:lang']`; the default is Spanish.
+`fmt(value, kind)` formats numbers with `Intl.NumberFormat` in the active locale.
+
+## Exam access model
+
 ```
-No DOM, no i18n, no Plotly inside `compute`. It must run in Node as-is.
-
-### Plot descriptor
-```js
-{ id: 'solow-diagram',
-  titleKey: 'plot.solow.diagram',
-  xLabelKey: 'axis.solow.K', yLabelKey: 'axis.solow.invdep',
-  kind: 'curves',
-  build(out1, out2, p1, p2, t) {
-    // out1/out2 are compute() results for set 1/2; t is the translate function
-    return { traces: [ {x, y, name, scenario: 1|2, dash?: 'dash', role?: 'aux'} ... ],
-             layout: { /* optional Plotly layout overrides, e.g. annotations, shapes */ } };
-  } }
+content_key[V][lang]  32 random bytes; encrypts every page of that edition
+KEK(id)               PBKDF2-HMAC-SHA256(id, salt, 200000, dklen=32)
+wrapped[i][lang]      AES-GCM(KEK(id_i), content_key[version(id_i)][lang])
+version(id)           digital root of the ID (1..9)
 ```
-`charts.js` styles traces by `scenario` (1 = blue family, 2 = orange family) and
-renders into a `.plot-card`. Every plot card gets a PNG download button (uses
-`Plotly.downloadImage`, filename `<modelId>-<plotId>.png`, scale: 2).
 
-## Integrated single-model pages (v2)
-Each page now hosts ONE integrated model (`models.length === 1`; the tab bar
-auto-hides). To organize long lists, entries support group subheaders:
-- `params[i].groupKey` / `scalars[i].groupKey` — an i18n key; when it changes
-  from the previous entry, a subheader row is inserted (define the key in
-  `strings`). Order entries so same-group items are contiguous.
-- `plots[i].groupKey` — full-width heading in the plot grid.
-- `equations` entries may be KaTeX strings OR `{ headingKey: 'eqgroup.x' }`
-  group-heading markers.
-Charts default to `dragmode:'pan'` with scroll-wheel zoom (config in charts.js).
+The browser derives `KEK` from the ID that was typed, then tries every wrapped
+entry; exactly one authenticates when the ID is on the class list. The wrapped
+list is shuffled so its order says nothing about who is who.
 
-## core.js responsibilities (framework)
-- `initPage({ pageId: 'longrun'|'shortrun', models: [mod, ...] })`:
-  builds the model tab bar, parameter table (3 columns: parameter | Set 1 | Set 2;
-  each cell = slider + synced number input), endogenous-variables comparison table
-  (Set 1, Set 2, Δ and %Δ columns), plot grid, equations panel (KaTeX render).
-- Recompute (debounced ~120ms) on any input; update scalars + all plots in place
-  (`Plotly.react`).
-- **Copy 1→2** button: copies all Set-1 values into Set 2.
-- **Reset** button: restores the model's `def1`/`def2` defaults.
-- **Scenarios**: Save (prompt for a name → localStorage key `macromodels:<modelId>:<name>`),
-  Load (dropdown of saved names + Delete), plus **Export JSON** (downloads
-  `{site:'macromodels', model, lang, params1, params2}` as a .json file) and
-  **Import JSON** (file input). Validate model id on import.
-- **Export data**: CSV and XLSX buttons.
-  - XLSX: workbook with sheets: `Parameters`, `Results` (endogenous scalars),
-    and one sheet per series group (columns like `t, Y (Set 1), Y (Set 2), ...`).
-  - CSV: same content concatenated into one file with `### section` header lines.
-  - Filenames: `macromodels-<modelId>-<yyyy-mm-dd>.csv/.xlsx`.
-- **Language**: EN/ES toggle in header; persists in `localStorage['macromodels:lang']`;
-  default `es`. On switch: re-translate all `data-i18n` nodes, re-render dynamic
-  UI (tables, plots — axis titles/trace names come from `t()`).
-- URL hash selects the active model tab (`long-run.html#labor`).
+Time is read from the `Date` header of a same-origin `HEAD` request rather than
+the local clock. The two test codes in `manifest.json` (`testHashes`, stored as
+SHA-256) bypass the schedule.
 
-## i18n.js contract
-```js
-export function t(key)            // current-language lookup, falls back to en, then key
-export function getLang()         // 'en' | 'es'
-export function setLang(lang)     // persists + document.documentElement.lang
-export function onLangChange(cb)  // subscribe (core re-renders)
-export function registerStrings(dict) // merge {en:{...}, es:{...}} from model modules
-export function applyI18n(root=document) // translate [data-i18n], [data-i18n-title]
-```
-Common keys (`ui.*`) live in i18n.js: buttons (copy12, reset, save, load, delete,
-exportCsv, exportXlsx, exportJson, importJson, png), table headers (parameter,
-set1, set2, delta, variable), section titles (parameters, endogenous, plots,
-equations, scenarios), nav (home, longrun, shortrun), landing copy, footer.
+Pages are decrypted to WebP bytes, turned into an `ImageBitmap` and drawn onto a
+`<canvas>` — no object URL is ever created. `contextmenu`, `copy`, `cut`,
+`dragstart` and `selectstart` are cancelled inside the pane, `Ctrl/Cmd+P` and
+`Ctrl/Cmd+S` are swallowed while an exam is open, and `@media print` blanks the
+page. A watermark carrying the student's ID sits over every page.
 
-## Design system (style.css)
-- CSS custom properties:
-  `--bg:#f6f7fb; --surface:#ffffff; --ink:#111827; --muted:#6b7280;
-   --brand:#1e3a8a; --brand-2:#3730a3; --s1:#2563eb; --s2:#ea580c;
-   --border:#e5e7eb; --radius:14px; --shadow:0 1px 3px rgb(16 24 40 / .08), 0 4px 16px rgb(16 24 40 / .06);`
-- Inter for UI; tabular numbers (`font-variant-numeric: tabular-nums`) in tables.
-- Sticky app header: site name, page nav pills, language segmented control (EN|ES).
-- Model tab bar under the header (pill tabs with chapter badge).
-- Layout: 12-col grid; parameters panel (~380px, sticky, own scroll) left; results
-  right: "Endogenous variables" card, then responsive 2-col plot grid, then
-  Equations card. Single column under 960px.
-- Scenario color chips: Set 1 = `--s1`, Set 2 = `--s2` used consistently in the
-  param table headers, endogenous table, and plot traces.
-- Landing page: hero (title, course line, ES/EN toggle), two large cards
-  (Long Run — Ch. 5, 7, 8 / Short Run — Ch. 9, 11, 12) with model lists,
-  a "how to use" strip (4 steps), footer (course, professor, book reference).
-- Polished details: focus rings, hover states, subtle transitions (<150ms),
-  print-friendly plots, favicon (inline SVG chart glyph).
-
-## Conventions
-- Percent-type params (`unit:'%'`): UI shows e.g. `20` with % suffix; stored/computed as `0.20`.
-- Number display: `fmt:'num'` → 3 significant decimals adaptive; `'pct'` → `x.xx%`;
-  `'int'` → thousands separators. Use `Intl.NumberFormat(lang)`.
-- All files UTF-8, LF. No frameworks, no minification.
-- Accessibility: label every input, aria-pressed on toggles, keyboard-usable tabs.
+**Known limit:** a student who legitimately opens the exam can still recover the
+pixels through developer tools. No client-side scheme prevents that; the design
+targets casual downloading, printing, copying and sharing.

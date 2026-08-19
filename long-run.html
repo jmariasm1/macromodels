@@ -1,80 +1,87 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>MacroModels — Long Run</title>
-<meta name="description" content="Interactive long-run macroeconomic models: Solow growth, labor market, money growth and inflation." />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231e3a8a'/%3E%3Cpath d='M6 23 L12 15 L17 19 L26 8' stroke='%23ffffff' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='26' cy='8' r='2.1' fill='%23ea580c'/%3E%3C/svg%3E" />
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+" crossorigin="anonymous">
-
-<link rel="stylesheet" href="assets/css/style.css" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Largo plazo · Macro Models</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23174f58'/%3E%3Cpath d='M6 23L13 15L18 19L26 9' stroke='%23f4ede3' stroke-width='2.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/css/app.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+<script defer src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
 
-<header class="site-header">
+<header class="appbar">
   <a class="brand" href="index.html">
-    <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <rect width="32" height="32" rx="7" fill="#1e3a8a"/>
-      <path d="M6 23 L12 15 L17 19 L26 8" stroke="#ffffff" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-      <circle cx="26" cy="8" r="2.1" fill="#ea580c"/>
-    </svg>
-    <span>MacroModels</span>
+    <span data-i18n="site.name">Macro Models</span>
+    <small data-i18n="site.course"></small>
   </a>
-  <nav class="site-nav" aria-label="Primary">
-    <a class="nav-pill" href="index.html" data-i18n="nav.home">Inicio</a>
-    <a class="nav-pill is-active" href="long-run.html" data-i18n="nav.longrun">Largo Plazo</a>
-    <a class="nav-pill" href="short-run.html" data-i18n="nav.shortrun">Corto Plazo</a>
+  <nav class="navpills">
+    <a href="index.html" data-nav="home" data-i18n="nav.home"></a>
+    <a href="short-run.html" data-nav="shortrun" data-i18n="nav.shortrun"></a>
+    <a href="long-run.html" data-nav="longrun" data-i18n="nav.longrun"></a>
   </nav>
-  <div class="lang-toggle" role="group" aria-label="Language / Idioma">
-    <button type="button" id="lang-es" aria-pressed="true">ES</button>
-    <button type="button" id="lang-en" aria-pressed="false">EN</button>
-  </div>
+  <span class="spacer"></span>
+  <button id="exam-toggle" class="btn" type="button" aria-pressed="true"></button>
+  <div id="lang-host"></div>
 </header>
 
-<main id="app">
-  <div class="loading-placeholder" id="loading-placeholder">
-    <span class="loading-spinner" aria-hidden="true"></span>
-    <span data-i18n="ui.loading">Cargando modelo…</span>
-  </div>
-</main>
+<div class="split" id="split">
 
-<footer class="site-footer">
-  <div class="footer-lines">
-    <span class="footer-course" data-i18n="course.line">Macroeconomía General — EC0113 / MS1002 · Universidad EAFIT · Prof. José Miguel Arias Mejía</span>
-    <span data-i18n="course.book">Charles I. Jones, Macroeconomics, 6.ª edición, W.W. Norton</span>
-  </div>
-  <div class="footer-lines">
-    <span data-i18n="footer.rights">Para uso educativo en Macroeconomía General.</span>
-    <span data-i18n="footer.builtWith">Construido con Plotly, KaTeX y SheetJS.</span>
-  </div>
-</footer>
+  <aside class="exam-pane" id="exam-pane">
+    <div class="exam-head">
+      <h2 data-i18n="exam.title"></h2>
+      <span id="exam-info" class="unit"></span>
+      <span class="spacer"></span>
+      <div id="exam-tools" class="actions"></div>
+    </div>
+    <div class="exam-body" id="exam-body"></div>
+  </aside>
 
-<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
-<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous"></script>
+  <button class="gutter" id="gutter" type="button" aria-label="resize" tabindex="-1"></button>
 
-<script type="module">
-  import { getLang, setLang, onLangChange, applyI18n } from './assets/js/i18n.js';
+  <main class="models-pane" id="models-root">
 
-  function syncLangButtons() {
-    const lang = getLang();
-    document.getElementById('lang-es').setAttribute('aria-pressed', String(lang === 'es'));
-    document.getElementById('lang-en').setAttribute('aria-pressed', String(lang === 'en'));
-  }
-  document.getElementById('lang-es').addEventListener('click', () => setLang('es'));
-  document.getElementById('lang-en').addEventListener('click', () => setLang('en'));
-  onLangChange(() => { syncLangButtons(); applyI18n(document); });
-  syncLangButtons();
-  applyI18n(document);
-  // Note: the #loading-placeholder is removed by core.js when initPage() mounts.
-</script>
+    <section class="card">
+      <div class="card-head">
+        <h2 data-i18n="ui.parameters"></h2>
+        <span class="spacer"></span>
+        <div id="variant-host" class="actions"></div>
+      </div>
+      <div class="card-body">
+        <div id="actions-host" class="actions" style="margin-bottom:14px"></div>
+        <div id="params-host"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2 data-i18n="ui.endogenous"></h2>
+        <span class="spacer"></span>
+        <button id="table-png" class="btn tiny" type="button" data-i18n="ui.png"></button>
+      </div>
+      <div class="card-body">
+        <div class="table-wrap" id="table-host"></div>
+      </div>
+    </section>
+
+    <div class="plot-grid" id="plot-host"></div>
+
+    <section class="card" style="margin-top:16px">
+      <div class="card-head"><h2 data-i18n="ui.equations"></h2></div>
+      <div class="card-body" id="equations-host"></div>
+    </section>
+
+    <footer class="foot">
+      <div data-i18n="site.prof"></div>
+      <div data-i18n="site.book"></div>
+    </footer>
+
+  </main>
+</div>
+
 <script type="module" src="assets/js/pages/longrun.js"></script>
 </body>
 </html>

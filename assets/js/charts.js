@@ -1,177 +1,134 @@
-// charts.js [FRAMEWORK]
-// Plotly styling helpers shared by every model page. Relies on the global
-// `Plotly` object loaded via CDN script tag in long-run.html / short-run.html.
+// charts.js — thin Plotly layer. Economies are identified by COLOUR
+// (Economy 1 blue, Economy 2 warm red); different curves inside one economy are
+// told apart by line style (solid / dashed / dotted).
 
-import { t } from './i18n.js';
+const FONT = 'Trebuchet MS, Gill Sans, Segoe UI, sans-serif';
 
-const COLORS = {
-  s1: '#2563eb',
-  s1Aux: '#93c5fd',
-  s2: '#ea580c',
-  s2Aux: '#fdba74',
-  grid: '#eef0f4',
-  ink: '#111827',
-  muted: '#6b7280',
+export const ECONOMY_COLORS = {
+  0: '#657780',                 // neutral (steady-state guides and other helpers)
+  1: '#2b63d9',
+  2: '#cc5a43',
 };
 
-const FONT_FAMILY = 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
-
-/** Base Plotly config shared by all plots. */
-const BASE_CONFIG = {
-  responsive: true,
-  displayModeBar: 'hover',
-  displaylogo: false,
-  scrollZoom: true,
-  modeBarButtonsToRemove: ['lasso2d', 'select2d', 'autoScale2d'],
+const AUX = {
+  0: '#8d9aa2',
+  1: '#7fa1ec',
+  2: '#e0a091',
 };
 
-/**
- * Style a single trace object according to its scenario (1|2) and role.
- * Mutates and returns the trace.
- */
-function styleTrace(trace) {
-  const scenario = trace.scenario === 2 ? 2 : 1;
-  const isAux = trace.role === 'aux';
-  const baseColor = scenario === 2 ? COLORS.s2 : COLORS.s1;
-  const auxColor = scenario === 2 ? COLORS.s2Aux : COLORS.s1Aux;
-  const color = isAux ? auxColor : baseColor;
-
-  const styled = Object.assign({}, trace);
-  styled.type = styled.type || 'scatter';
-
-  // Bar traces are colored via marker.color, not line; don't inject a line/mode
-  // (Plotly ignores `mode`/`line` on bars, but keep the object clean).
-  if (styled.type === 'bar') {
-    delete styled.mode;
-    delete styled.line;
-    styled.marker = Object.assign({ color }, trace.marker || {});
-    return styled;
-  }
-
-  styled.mode = styled.mode || 'lines';
-
-  const existingLine = trace.line || {};
-  styled.line = Object.assign(
-    {
-      color,
-      width: isAux ? 1.75 : 2.5,
-      dash: trace.dash || existingLine.dash || undefined,
-    },
-    existingLine,
-    { color, dash: trace.dash || existingLine.dash || undefined }
-  );
-
-  if (styled.mode.includes('markers')) {
-    styled.marker = Object.assign({ color, size: 6 }, trace.marker || {});
-  }
-
-  return styled;
-}
-
-/** Build the shared clean-white Plotly layout, merged with per-plot overrides. */
-function buildLayout(descriptor, overrides) {
-  const layout = {
-    autosize: true,
+export function baseLayout(xTitle, yTitle) {
+  return {
+    margin: { l: 62, r: 18, t: 16, b: 52 },
+    paper_bgcolor: 'rgba(0,0,0,0)',
+    plot_bgcolor: '#fffaf2',
     dragmode: 'pan',
-    font: { family: FONT_FAMILY, size: 12, color: COLORS.ink },
-    margin: { l: 56, r: 20, t: overrides.title ? 36 : 12, b: 48 },
-    plot_bgcolor: '#ffffff',
-    paper_bgcolor: '#ffffff',
+    hovermode: 'closest',
     showlegend: true,
-    legend: {
-      orientation: 'h',
-      x: 0,
-      y: 1.12,
-      font: { size: 11, color: COLORS.muted },
-    },
+    legend: { orientation: 'h', x: 0, y: 1.14, font: { size: 10, family: FONT } },
     xaxis: {
-      title: descriptor.xLabelKey ? { text: t(descriptor.xLabelKey), font: { size: 12 } } : undefined,
-      gridcolor: COLORS.grid,
-      zerolinecolor: COLORS.grid,
-      linecolor: '#d1d5db',
-      ticks: 'outside',
-      tickcolor: '#d1d5db',
-      tickfont: { size: 11, color: COLORS.muted },
+      title: { text: xTitle, font: { size: 12 } },
+      gridcolor: 'rgba(62,73,82,0.10)',
+      zerolinecolor: 'rgba(62,73,82,0.20)',
+      hoverformat: '.4g',
     },
     yaxis: {
-      title: descriptor.yLabelKey ? { text: t(descriptor.yLabelKey), font: { size: 12 } } : undefined,
-      gridcolor: COLORS.grid,
-      zerolinecolor: COLORS.grid,
-      linecolor: '#d1d5db',
-      ticks: 'outside',
-      tickcolor: '#d1d5db',
-      tickfont: { size: 11, color: COLORS.muted },
+      title: { text: yTitle, font: { size: 12 } },
+      gridcolor: 'rgba(62,73,82,0.10)',
+      zerolinecolor: 'rgba(62,73,82,0.20)',
+      hoverformat: '.4g',
     },
+    font: { family: FONT, color: '#213038', size: 12 },
   };
-
-  return Object.assign(layout, overrides, {
-    xaxis: Object.assign({}, layout.xaxis, overrides.xaxis || {}),
-    yaxis: Object.assign({}, layout.yaxis, overrides.yaxis || {}),
-    margin: Object.assign({}, layout.margin, overrides.margin || {}),
-    legend: Object.assign({}, layout.legend, overrides.legend || {}),
-  });
 }
 
-/**
- * Render (or update in place) a plot descriptor into `container` using
- * Plotly.react. `p1`/`p2` are the current parameter objects (decimals),
- * `out1`/`out2` are compute() results for each scenario.
- */
-export function renderPlot(container, descriptor, out1, out2, p1, p2) {
-  if (!container || !window.Plotly) return;
-  const built = descriptor.build(out1, out2, p1, p2, t) || { traces: [], layout: {} };
-  const traces = (built.traces || []).map(styleTrace);
-  const layout = buildLayout(descriptor, built.layout || {});
-  fixDegenerateYRange(traces, layout);
-  window.Plotly.react(container, traces, layout, BASE_CONFIG);
+/** Turn a model trace descriptor into a styled Plotly trace. */
+export function styleTrace(tr) {
+  const e = tr.economy ?? 0;
+  const aux = tr.role === 'aux';
+  const color = aux ? AUX[e] : ECONOMY_COLORS[e];
+
+  if (tr.type === 'bar') {
+    return { ...tr, type: 'bar', marker: { color: ECONOMY_COLORS[e], ...(tr.marker || {}) } };
+  }
+
+  const out = {
+    type: 'scatter',
+    mode: tr.mode || 'lines',
+    x: tr.x,
+    y: tr.y,
+    name: tr.name,
+    hovertemplate: `${tr.name}<br>%{x}, %{y}<extra></extra>`,
+  };
+  if (out.mode.includes('lines')) {
+    out.line = { color, width: aux ? 1.6 : 2.6, dash: tr.dash || 'solid' };
+  }
+  if (out.mode.includes('markers')) {
+    out.marker = { size: 9, color: ECONOMY_COLORS[e], line: { width: 1.4, color: '#fffaf2' },
+      ...(tr.marker || {}) };
+  }
+  if (tr.text) { out.text = tr.text; out.textposition = tr.textposition || 'top right';
+    out.textfont = { family: FONT, size: 10, color: '#24343c' }; }
+  if (tr.showlegend === false) out.showlegend = false;
+  return out;
 }
 
-/**
- * If every y value across all traces is constant up to numerical noise,
- * Plotly's autorange zooms into the noise (e.g. a 1e-16 band around zero).
- * Replace it with an explicit, padded range so flat series read as flat.
- */
-function fixDegenerateYRange(traces, layout) {
-  if (layout.yaxis && layout.yaxis.range) return; // explicit range wins
-  let min = Infinity;
-  let max = -Infinity;
-  for (const tr of traces) {
-    if (!tr.y) continue;
-    for (const v of tr.y) {
-      if (typeof v === 'number' && Number.isFinite(v)) {
-        if (v < min) min = v;
-        if (v > max) max = v;
-      }
+function deepMerge(target, extra) {
+  if (!extra) return target;
+  for (const [k, v] of Object.entries(extra)) {
+    if (v && typeof v === 'object' && !Array.isArray(v)) {
+      target[k] = deepMerge(target[k] ? { ...target[k] } : {}, v);
+    } else {
+      target[k] = v;
     }
   }
-  if (!Number.isFinite(min) || !Number.isFinite(max)) return;
-  const span = max - min;
-  const scale = Math.max(Math.abs(min), Math.abs(max));
-  if (span > Math.max(1e-9, scale * 1e-9)) return; // real variation — leave autorange
-  let center = (min + max) / 2;
-  if (Math.abs(center) < 1e-9) center = 0; // snap float noise to zero
-  const isLog = layout.yaxis && layout.yaxis.type === 'log';
-  if (isLog) {
-    if (center <= 0) return;
-    const c = Math.log10(center);
-    layout.yaxis = Object.assign({}, layout.yaxis, { range: [c - 0.5, c + 0.5], autorange: false });
-    return;
-  }
-  const pad = Math.max(1, Math.abs(center) * 0.5);
-  layout.yaxis = Object.assign({}, layout.yaxis, {
-    range: [center - pad, center + pad],
-    autorange: false,
+  return target;
+}
+
+export function render(nodeId, spec, xTitle, yTitle) {
+  if (!window.Plotly) return;
+  const layout = deepMerge(baseLayout(xTitle, yTitle), spec.layout);
+  const traces = spec.traces.filter(Boolean).map(styleTrace);
+  window.Plotly.react(nodeId, traces, layout, {
+    displayModeBar: false,
+    responsive: true,
+    scrollZoom: true,
   });
 }
 
-/** Download the current plot in `container` as a PNG at 2x scale. */
-export function downloadPNG(container, filename) {
-  if (!container || !window.Plotly) return Promise.resolve();
-  return window.Plotly.downloadImage(container, {
+/** Download one plot as a PNG. */
+export async function downloadPlotPng(nodeId, fileName) {
+  if (!window.Plotly) return;
+  const el = document.getElementById(nodeId);
+  if (!el) return;
+  const url = await window.Plotly.toImage(el, {
     format: 'png',
-    filename: filename.replace(/\.png$/i, ''),
-    scale: 2,
+    width: Math.max(Math.round(el.clientWidth || 760), 760),
+    height: Math.max(Math.round(el.clientHeight || 430), 430),
+    scale: 3,
   });
+  triggerDownload(url, `${fileName}.png`);
 }
 
-export const chartColors = COLORS;
+/** Download an arbitrary DOM node (used for the endogenous-variables table). */
+export async function downloadNodePng(node, fileName) {
+  if (!window.html2canvas || !node) return;
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'position:fixed;left:-10000px;top:0;padding:18px;background:#ffffff';
+  wrap.appendChild(node.cloneNode(true));
+  document.body.appendChild(wrap);
+  try {
+    const canvas = await window.html2canvas(wrap, { backgroundColor: '#ffffff', scale: 2 });
+    triggerDownload(canvas.toDataURL('image/png'), `${fileName}.png`);
+  } finally {
+    document.body.removeChild(wrap);
+  }
+}
+
+function triggerDownload(url, fileName) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}

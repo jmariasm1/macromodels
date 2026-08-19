@@ -1,273 +1,240 @@
-// i18n.js [FRAMEWORK]
-// Minimal, dependency-free i18n engine. Spanish is the default language.
-// Model modules call registerStrings({en:{...}, es:{...}}) to merge in their
-// own keys (params, plots, scalars, notes). Pages call t(key) to translate.
+// i18n.js — bilingual string table + tiny translation machinery.
+// Model modules add their own strings with registerStrings().
 
-const STORAGE_KEY = 'macromodels:lang';
-const DEFAULT_LANG = 'es';
+const LS_KEY = 'macromodels:lang';
 
-/** @type {{en: Record<string,string>, es: Record<string,string>}} */
-const dict = {
+const DICT = {
   en: {
-    // Site
-    'site.name': 'MacroModels',
-    'site.subtitle': 'Interactive macroeconomic models — long run and short run',
+    'site.name': 'Macro Models',
+    'site.course': 'General Macroeconomics · EC0113 / MS1002',
+    'site.prof': 'Professor: José Miguel Arias Mejía',
+    'site.univ': 'Universidad EAFIT',
+    'site.book': 'Based on C. I. Jones, Macroeconomics, 6th ed.',
 
-    // Nav
     'nav.home': 'Home',
-    'nav.longrun': 'Long Run',
-    'nav.shortrun': 'Short Run',
+    'nav.shortrun': 'Short run',
+    'nav.longrun': 'Long run',
+    'nav.language': 'Language',
 
-    // Course / footer
-    'course.line': 'Macroeconomía General — EC0113 / MS1002 · Universidad EAFIT · Prof. José Miguel Arias Mejía',
-    'course.book': 'Charles I. Jones, Macroeconomics, 6th edition, W.W. Norton',
-    'footer.rights': 'For educational use in Macroeconomía General.',
-    'footer.builtWith': 'Built with Plotly, KaTeX and SheetJS.',
+    'landing.title': 'Macro Models',
+    'landing.tagline': 'Interactive models for General Macroeconomics',
+    'landing.pick': 'Choose a language, then a set of models.',
+    'landing.shortrun.title': 'Short run',
+    'landing.shortrun.chapters': 'Chapters 9 · 11 · 12',
+    'landing.shortrun.i1': 'IS-MP and IS-LM diagrams',
+    'landing.shortrun.i2': 'Phillips curve and Okun’s law',
+    'landing.shortrun.i3': 'Investment-savings and money markets',
+    'landing.longrun.title': 'Long run',
+    'landing.longrun.chapters': 'Chapters 5 · 7 · 8',
+    'landing.longrun.i1': 'Solow growth model and transition dynamics',
+    'landing.longrun.i2': 'Labor market, minimum wage and the bathtub model',
+    'landing.longrun.i3': 'Money, prices and inflation',
+    'landing.open': 'Open →',
+    'landing.howto': 'How to use it',
+    'landing.h1': 'Set the parameters of Economy 1 and Economy 2 in the top panel.',
+    'landing.h2': 'Compare the two economies in the table and the charts — each economy keeps its colour throughout.',
+    'landing.h3': 'Use “Copy 1 → 2” to start from identical economies and change one parameter at a time.',
+    'landing.h4': 'During the exam, enter your ID in the left-hand panel to open your version.',
 
-    // Landing hero
-    'landing.hero.title': 'Learn macroeconomics by changing the numbers',
-    'landing.hero.body': 'Interactive models from Jones’ Macroeconomics: adjust parameters, compare two scenarios side by side, and see the equations, tables and plots update instantly.',
-
-    // Landing cards
-    'landing.card.longrun.title': 'Long Run',
-    'landing.card.longrun.desc': 'Growth, the labor market and inflation over decades: how economies get rich and why prices rise.',
-    'landing.card.shortrun.title': 'Short Run',
-    'landing.card.shortrun.desc': 'Business cycles, output gaps, aggregate demand and monetary policy: why economies boom and bust.',
-    'landing.card.chapters': 'Chapters',
-    'landing.card.cta': 'Explore models',
-
-    // Model names (index links) — chapter badges are NOT translated (kept as literal strings in HTML)
-    'landing.model.solow': 'Solow Growth Model',
-    'landing.model.labor': 'Labor Market',
-    'landing.model.inflation': 'Money Growth & Inflation',
-    'landing.model.okun': 'Output, Growth & Okun’s Law',
-    'landing.model.iscurve': 'The IS Curve',
-    'landing.model.mppc': 'Monetary Policy & Phillips Curve',
-
-    // How-to-use strip
-    'landing.howto.title': 'How to use this site',
-    'landing.howto.step1.title': 'Choose a model',
-    'landing.howto.step1.body': 'Pick Long Run or Short Run, then a model tab.',
-    'landing.howto.step2.title': 'Set 1 = baseline',
-    'landing.howto.step2.body': 'Adjust Set 1 sliders to the scenario you want as your baseline.',
-    'landing.howto.step3.title': 'Copy & change one thing',
-    'landing.howto.step3.body': 'Click "Copy 1→2" then change a single parameter in Set 2.',
-    'landing.howto.step4.title': 'Compare & export',
-    'landing.howto.step4.body': 'Read the tables and plots, then export as image, CSV or Excel.',
-
-    // Section titles
-    'section.parameters': 'Parameters',
-    'section.endogenous': 'Endogenous variables',
-    'section.plots': 'Plots',
-    'section.equations': 'Equations',
-    'section.scenarios': 'Scenarios',
-
-    // Table headers
-    'table.parameter': 'Parameter',
-    'table.set1': 'Set 1',
-    'table.set2': 'Set 2',
-    'table.delta': 'Δ',
-    'table.pctdelta': '%Δ',
-    'table.variable': 'Variable',
-
-    // Buttons / controls
+    'ui.parameters': 'Parameters',
+    'ui.endogenous': 'Endogenous variables',
+    'ui.charts': 'Tables and charts',
+    'ui.equations': 'Equations',
     'ui.copy12': 'Copy 1 → 2',
     'ui.reset': 'Reset',
     'ui.save': 'Save',
     'ui.load': 'Load',
     'ui.delete': 'Delete',
-    'ui.exportCsv': 'Export CSV',
-    'ui.exportXlsx': 'Export XLSX',
-    'ui.exportJson': 'Export JSON',
-    'ui.importJson': 'Import JSON',
     'ui.png': 'PNG',
-    'ui.scenarioNamePrompt': 'Scenario name:',
-    'ui.scenarioSelectPlaceholder': 'Select a saved scenario…',
+    'ui.scenarioName': 'Scenario',
     'ui.noScenarios': 'No saved scenarios',
-    'ui.confirmDelete': 'Delete scenario "{name}"?',
-    'ui.importError': 'Could not import this file: it does not match the current model.',
-    'ui.importSuccess': 'Scenario imported.',
-    'ui.lang.en': 'EN',
-    'ui.lang.es': 'ES',
+    'ui.parameter': 'Parameter',
+    'ui.variable': 'Variable',
+    'ui.economy1': 'Economy 1',
+    'ui.economy2': 'Economy 2',
+    'ui.e1': 'Ec. 1',
+    'ui.e2': 'Ec. 2',
+    'ui.change': 'Change',
+    'ui.model': 'Model',
+    'ui.hideExam': 'Hide exam',
+    'ui.showExam': 'Show exam',
+    'ui.na': '—',
 
-    // Loading
-    'ui.loading': 'Loading model…',
+    'exam.title': 'Midterm exam',
+    'exam.gate.title': 'Enter your ID',
+    'exam.gate.help': 'Type your ID number to open your version of the exam. The version is assigned automatically from your ID.',
+    'exam.gate.placeholder': 'ID number',
+    'exam.gate.open': 'Open',
+    'exam.gate.checking': 'Checking…',
+    'exam.gate.loading': 'Loading your exam…',
+    'exam.version': 'Version',
+    'exam.close': 'Close',
+    'exam.lang': 'Exam language',
+    'exam.unavailable.title': 'Exam not available',
+    'exam.unavailable.stamp': 'EXAM PENDING',
+    'exam.pending': 'This exam has not been written yet.',
+    'exam.badid': 'This ID is not on the class list, or the exam is not open right now.',
+    'exam.window': 'The exam can only be opened during the scheduled sessions.',
+    'exam.schedule': 'Scheduled sessions (Colombia time): Friday 21 August, 9:00–12:00 · Tuesday 25 August, 15:00–18:00.',
+    'exam.watermark': 'ID {id} · Version {v}',
+    'exam.noCopy': 'Copying, printing and downloading are disabled.',
+    'exam.page': 'Page',
+    'exam.of': 'of',
 
-    // Misc
-    'ui.notes': 'Notes',
+    'table.delta': 'Δ (2 − 1)',
+    'axis.time': 'Period (t)',
   },
+
   es: {
-    // Site
-    'site.name': 'MacroModels',
-    'site.subtitle': 'Modelos macroeconómicos interactivos — largo y corto plazo',
+    'site.name': 'Modelos Macro',
+    'site.course': 'Macroeconomía General · EC0113 / MS1002',
+    'site.prof': 'Profesor: José Miguel Arias Mejía',
+    'site.univ': 'Universidad EAFIT',
+    'site.book': 'Basado en C. I. Jones, Macroeconomics, 6.ª ed.',
 
-    // Nav
     'nav.home': 'Inicio',
-    'nav.longrun': 'Largo Plazo',
-    'nav.shortrun': 'Corto Plazo',
+    'nav.shortrun': 'Corto plazo',
+    'nav.longrun': 'Largo plazo',
+    'nav.language': 'Idioma',
 
-    // Course / footer
-    'course.line': 'Macroeconomía General — EC0113 / MS1002 · Universidad EAFIT · Prof. José Miguel Arias Mejía',
-    'course.book': 'Charles I. Jones, Macroeconomics, 6.ª edición, W.W. Norton',
-    'footer.rights': 'Para uso educativo en Macroeconomía General.',
-    'footer.builtWith': 'Construido con Plotly, KaTeX y SheetJS.',
+    'landing.title': 'Modelos Macro',
+    'landing.tagline': 'Modelos interactivos para Macroeconomía General',
+    'landing.pick': 'Elija un idioma y luego un conjunto de modelos.',
+    'landing.shortrun.title': 'Corto plazo',
+    'landing.shortrun.chapters': 'Capítulos 9 · 11 · 12',
+    'landing.shortrun.i1': 'Diagramas IS-MP e IS-LM',
+    'landing.shortrun.i2': 'Curva de Phillips y ley de Okun',
+    'landing.shortrun.i3': 'Mercados de inversión-ahorro y de dinero',
+    'landing.longrun.title': 'Largo plazo',
+    'landing.longrun.chapters': 'Capítulos 5 · 7 · 8',
+    'landing.longrun.i1': 'Modelo de crecimiento de Solow y dinámica de transición',
+    'landing.longrun.i2': 'Mercado laboral, salario mínimo y modelo de la bañera',
+    'landing.longrun.i3': 'Dinero, precios e inflación',
+    'landing.open': 'Abrir →',
+    'landing.howto': 'Cómo usarlo',
+    'landing.h1': 'Fije los parámetros de la Economía 1 y de la Economía 2 en el panel superior.',
+    'landing.h2': 'Compare las dos economías en la tabla y en las gráficas: cada economía conserva su color en todo el sitio.',
+    'landing.h3': 'Use «Copiar 1 → 2» para partir de dos economías idénticas y cambiar un parámetro a la vez.',
+    'landing.h4': 'Durante el examen, escriba su cédula en el panel de la izquierda para abrir su versión.',
 
-    // Landing hero
-    'landing.hero.title': 'Aprende macroeconomía cambiando los números',
-    'landing.hero.body': 'Modelos interactivos del libro de Jones: ajusta los parámetros, compara dos escenarios lado a lado y observa cómo se actualizan al instante las ecuaciones, tablas y gráficos.',
-
-    // Landing cards
-    'landing.card.longrun.title': 'Largo Plazo',
-    'landing.card.longrun.desc': 'Crecimiento, mercado laboral e inflación a lo largo de décadas: cómo se enriquecen las economías y por qué suben los precios.',
-    'landing.card.shortrun.title': 'Corto Plazo',
-    'landing.card.shortrun.desc': 'Ciclos económicos, brechas de producto, demanda agregada y política monetaria: por qué las economías tienen auges y recesiones.',
-    'landing.card.chapters': 'Capítulos',
-    'landing.card.cta': 'Explorar modelos',
-
-    // Model names (index links)
-    'landing.model.solow': 'Modelo de crecimiento de Solow',
-    'landing.model.labor': 'Mercado laboral',
-    'landing.model.inflation': 'Crecimiento monetario e inflación',
-    'landing.model.okun': 'Producto, crecimiento y ley de Okun',
-    'landing.model.iscurve': 'La curva IS',
-    'landing.model.mppc': 'Política monetaria y curva de Phillips',
-
-    // How-to-use strip
-    'landing.howto.title': 'Cómo usar este sitio',
-    'landing.howto.step1.title': 'Elige un modelo',
-    'landing.howto.step1.body': 'Selecciona Largo Plazo o Corto Plazo y luego una pestaña de modelo.',
-    'landing.howto.step2.title': 'Set 1 = escenario base',
-    'landing.howto.step2.body': 'Ajusta los deslizadores del Set 1 al escenario que quieras como base.',
-    'landing.howto.step3.title': 'Copia y cambia algo',
-    'landing.howto.step3.body': 'Haz clic en "Copiar 1→2" y luego cambia un solo parámetro en el Set 2.',
-    'landing.howto.step4.title': 'Compara y exporta',
-    'landing.howto.step4.body': 'Lee las tablas y gráficos, luego exporta como imagen, CSV o Excel.',
-
-    // Section titles
-    'section.parameters': 'Parámetros',
-    'section.endogenous': 'Variables endógenas',
-    'section.plots': 'Gráficos',
-    'section.equations': 'Ecuaciones',
-    'section.scenarios': 'Escenarios',
-
-    // Table headers
-    'table.parameter': 'Parámetro',
-    'table.set1': 'Set 1',
-    'table.set2': 'Set 2',
-    'table.delta': 'Δ',
-    'table.pctdelta': '%Δ',
-    'table.variable': 'Variable',
-
-    // Buttons / controls
+    'ui.parameters': 'Parámetros',
+    'ui.endogenous': 'Variables endógenas',
+    'ui.charts': 'Tablas y gráficas',
+    'ui.equations': 'Ecuaciones',
     'ui.copy12': 'Copiar 1 → 2',
     'ui.reset': 'Reiniciar',
     'ui.save': 'Guardar',
     'ui.load': 'Cargar',
-    'ui.delete': 'Eliminar',
-    'ui.exportCsv': 'Exportar CSV',
-    'ui.exportXlsx': 'Exportar XLSX',
-    'ui.exportJson': 'Exportar JSON',
-    'ui.importJson': 'Importar JSON',
+    'ui.delete': 'Borrar',
     'ui.png': 'PNG',
-    'ui.scenarioNamePrompt': 'Nombre del escenario:',
-    'ui.scenarioSelectPlaceholder': 'Selecciona un escenario guardado…',
-    'ui.noScenarios': 'No hay escenarios guardados',
-    'ui.confirmDelete': '¿Eliminar el escenario "{name}"?',
-    'ui.importError': 'No se pudo importar este archivo: no corresponde al modelo actual.',
-    'ui.importSuccess': 'Escenario importado.',
-    'ui.lang.en': 'EN',
-    'ui.lang.es': 'ES',
+    'ui.scenarioName': 'Escenario',
+    'ui.noScenarios': 'Sin escenarios guardados',
+    'ui.parameter': 'Parámetro',
+    'ui.variable': 'Variable',
+    'ui.economy1': 'Economía 1',
+    'ui.economy2': 'Economía 2',
+    'ui.e1': 'Ec. 1',
+    'ui.e2': 'Ec. 2',
+    'ui.change': 'Cambio',
+    'ui.model': 'Modelo',
+    'ui.hideExam': 'Ocultar parcial',
+    'ui.showExam': 'Mostrar parcial',
+    'ui.na': '—',
 
-    // Loading
-    'ui.loading': 'Cargando modelo…',
+    'exam.title': 'Examen parcial',
+    'exam.gate.title': 'Escriba su cédula',
+    'exam.gate.help': 'Escriba su número de cédula para abrir su versión del parcial. La versión se asigna automáticamente a partir de la cédula.',
+    'exam.gate.placeholder': 'Número de cédula',
+    'exam.gate.open': 'Abrir',
+    'exam.gate.checking': 'Verificando…',
+    'exam.gate.loading': 'Cargando su parcial…',
+    'exam.version': 'Versión',
+    'exam.close': 'Cerrar',
+    'exam.lang': 'Idioma del parcial',
+    'exam.unavailable.title': 'Parcial no disponible',
+    'exam.unavailable.stamp': 'PARCIAL PENDIENTE',
+    'exam.pending': 'Parcial pendiente de elaboración.',
+    'exam.badid': 'Esta cédula no está en la lista del curso, o el parcial no está abierto en este momento.',
+    'exam.window': 'El parcial solo puede abrirse durante las sesiones programadas.',
+    'exam.schedule': 'Sesiones programadas (hora de Colombia): viernes 21 de agosto, 9:00–12:00 · martes 25 de agosto, 15:00–18:00.',
+    'exam.watermark': 'C.C. {id} · Versión {v}',
+    'exam.noCopy': 'La copia, la impresión y la descarga están deshabilitadas.',
+    'exam.page': 'Página',
+    'exam.of': 'de',
 
-    // Misc
-    'ui.notes': 'Notas',
+    'table.delta': 'Δ (2 − 1)',
+    'axis.time': 'Periodo (t)',
   },
 };
 
-let currentLang = DEFAULT_LANG;
-try {
-  const saved = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
-  if (saved === 'en' || saved === 'es') currentLang = saved;
-} catch (e) {
-  // localStorage unavailable (e.g. file:// in some browsers) — fall back silently
-}
+let lang = (() => {
+  try {
+    const v = localStorage.getItem(LS_KEY);
+    if (v === 'en' || v === 'es') return v;
+  } catch (_) { /* storage may be unavailable */ }
+  return 'es';
+})();
 
 const listeners = new Set();
 
-/** Current-language lookup. Falls back to English, then to the raw key. */
-export function t(key) {
-  const fromCurrent = dict[currentLang] && dict[currentLang][key];
-  if (fromCurrent !== undefined) return fromCurrent;
-  const fromEn = dict.en && dict.en[key];
-  if (fromEn !== undefined) return fromEn;
-  return key;
-}
-
-/** Returns the active language code: 'en' | 'es'. */
-export function getLang() {
-  return currentLang;
-}
-
-/** Sets the active language, persists it, updates <html lang>, and notifies subscribers. */
-export function setLang(lang) {
-  if (lang !== 'en' && lang !== 'es') return;
-  currentLang = lang;
-  try {
-    localStorage.setItem(STORAGE_KEY, lang);
-  } catch (e) {
-    // ignore
-  }
-  if (typeof document !== 'undefined') {
-    document.documentElement.lang = lang;
-  }
-  for (const cb of listeners) {
-    try {
-      cb(lang);
-    } catch (e) {
-      console.error('[i18n] onLangChange callback failed', e);
-    }
+export function registerStrings(dict) {
+  for (const l of ['en', 'es']) {
+    if (dict[l]) Object.assign(DICT[l], dict[l]);
   }
 }
 
-/** Subscribe to language changes. Returns an unsubscribe function. */
-export function onLangChange(cb) {
-  listeners.add(cb);
-  return () => listeners.delete(cb);
+export function t(key, vars) {
+  let s = (DICT[lang] && DICT[lang][key]) ?? (DICT.en && DICT.en[key]) ?? key;
+  if (vars) {
+    for (const [k, v] of Object.entries(vars)) s = s.replaceAll(`{${k}}`, v);
+  }
+  return s;
 }
 
-/** Merge model-provided strings {en:{...}, es:{...}} into the dictionary. */
-export function registerStrings(strings) {
-  if (!strings) return;
-  if (strings.en) Object.assign(dict.en, strings.en);
-  if (strings.es) Object.assign(dict.es, strings.es);
+export function getLang() { return lang; }
+
+export function setLang(next) {
+  if (next !== 'en' && next !== 'es') return;
+  if (next === lang) return;
+  lang = next;
+  try { localStorage.setItem(LS_KEY, lang); } catch (_) { /* ignore */ }
+  document.documentElement.lang = lang;
+  listeners.forEach((fn) => fn(lang));
 }
 
-/**
- * Translate all [data-i18n] (textContent) and [data-i18n-title] (title attr)
- * nodes under `root`. Also handles [data-i18n-placeholder] and
- * [data-i18n-aria-label] for form controls.
- */
+export function onLangChange(fn) { listeners.add(fn); return () => listeners.delete(fn); }
+
+/** Translate every [data-i18n] / [data-i18n-attr] node under `root`. */
 export function applyI18n(root = document) {
-  if (!root || !root.querySelectorAll) return;
   root.querySelectorAll('[data-i18n]').forEach((el) => {
-    const key = el.getAttribute('data-i18n');
-    if (key) el.textContent = t(key);
+    el.textContent = t(el.getAttribute('data-i18n'));
   });
-  root.querySelectorAll('[data-i18n-title]').forEach((el) => {
-    const key = el.getAttribute('data-i18n-title');
-    if (key) el.title = t(key);
+  root.querySelectorAll('[data-i18n-attr]').forEach((el) => {
+    // format: "placeholder:exam.gate.placeholder;title:ui.png"
+    el.getAttribute('data-i18n-attr').split(';').forEach((pair) => {
+      const [attr, key] = pair.split(':');
+      if (attr && key) el.setAttribute(attr.trim(), t(key.trim()));
+    });
   });
-  root.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
-    const key = el.getAttribute('data-i18n-placeholder');
-    if (key) el.setAttribute('placeholder', t(key));
-  });
-  root.querySelectorAll('[data-i18n-aria-label]').forEach((el) => {
-    const key = el.getAttribute('data-i18n-aria-label');
-    if (key) el.setAttribute('aria-label', t(key));
-  });
-  if (typeof document !== 'undefined') {
-    document.documentElement.lang = currentLang;
-  }
 }
+
+/** Locale-aware number formatting used by tables and axis ticks. */
+export function fmt(value, kind = 'num') {
+  if (!Number.isFinite(value)) return t('ui.na');
+  const loc = lang === 'es' ? 'es-CO' : 'en-US';
+  if (kind === 'pct') {
+    return new Intl.NumberFormat(loc, { style: 'percent', minimumFractionDigits: 2,
+      maximumFractionDigits: 2 }).format(value);
+  }
+  if (kind === 'int') {
+    return new Intl.NumberFormat(loc, { maximumFractionDigits: 0 }).format(value);
+  }
+  if (kind === 'big') {
+    return new Intl.NumberFormat(loc, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+  }
+  const abs = Math.abs(value);
+  const d = abs === 0 ? 2 : abs >= 1000 ? 1 : abs >= 1 ? 3 : 4;
+  return new Intl.NumberFormat(loc, { minimumFractionDigits: 0, maximumFractionDigits: d }).format(value);
+}
+
+document.documentElement.lang = lang;
