@@ -3,11 +3,15 @@
 // How access works
 //   1. The student types their ID. The exam VERSION is the digital root of that
 //      number (add the digits, repeat until one digit is left, 1..9).
-//   2. The ID itself is the key. A key-encryption key is derived from it with
-//      PBKDF2-SHA256 (200k iterations) and used to try to unwrap the content key
-//      of the requested version. Only a student whose ID is on the class list has
-//      an entry that authenticates, so no plaintext list of student IDs is
-//      published anywhere and the exam pages cannot be decrypted without one.
+//   2. A passphrase built as prefix + [session word] + ID (e.g. "macro123456789")
+//      is stretched with PBKDF2-SHA256 (200k iterations) into a key-encryption
+//      key, which is used to try to unwrap the content key of the requested
+//      version. Only a student whose ID is on the class list has an entry that
+//      authenticates, so no plaintext list of student IDs is published anywhere
+//      and the exam pages cannot be decrypted without one.
+//      NOTE: when the build carries no session word the passphrase is computable
+//      from the ID alone, so it changes the keys but does not stop a student who
+//      knows their own ID from decrypting their own version ahead of time.
 //   3. Outside the scheduled exam windows nothing is decrypted at all. The clock
 //      comes from the server's own Date response header, not the local machine.
 //
@@ -26,7 +30,8 @@ const MANIFEST_URL = 'assets/exam/manifest.json';
 const TEST_BYPASS_WINDOW = true;   // the professor's test codes ignore the schedule
 
 let manifestPromise = null;
-let state = { subject: null, id: null, version: null, examLang: null, zoom: 1 };
+let needsWord = false;   // set from the manifest once it loads
+let state = { subject: null, id: null, version: null, examLang: null, word: '', zoom: 1 };
 
 /* ----------------------------------------------------------------- utils */
 
@@ -105,9 +110,20 @@ function insideWindow(now, windows) {
 
 /* ------------------------------------------------------------ decryption */
 
-async function deriveKek(id, saltB64, iterations) {
+/**
+ * The key is derived from a PASSPHRASE, not from the bare ID:
+ *     prefix + [session word] + ID          e.g. "macro123456789"
+ * The prefix comes from the manifest. When the manifest sets requiresWord, the
+ * gate also asks for a word that the professor says out loud at the start of the
+ * session, and that word sits between the prefix and the ID.
+ */
+function passphraseFor(man, id, word) {
+  return `${man.kdf.prefix ?? ''}${word || ''}${id}`;
+}
+
+async function deriveKek(passphrase, saltB64, iterations) {
   const base = await crypto.subtle.importKey(
-    'raw', new TextEncoder().encode(id), 'PBKDF2', false, ['deriveKey'],
+    'raw', new TextEncoder().encode(passphrase), 'PBKDF2', false, ['deriveKey'],
   );
   return crypto.subtle.deriveKey(
     { name: 'PBKDF2', salt: b64ToBytes(saltB64), iterations, hash: 'SHA-256' },
@@ -164,18 +180,37 @@ function showGate(msg, cls) {
   input.autocomplete = 'off';
   input.placeholder = t('exam.gate.placeholder');
   input.setAttribute('aria-label', t('exam.gate.placeholder'));
+
+  // Only asked for when the build was made with a session word.
+  let wordInput = null;
+  if (needsWord) {
+    wordInput = el('input');
+    wordInput.type = 'text';
+    wordInput.autocomplete = 'off';
+    wordInput.placeholder = t('exam.gate.word');
+    wordInput.setAttribute('aria-label', t('exam.gate.word'));
+  }
+
   const go = el('button', 'btn primary', t('exam.gate.open'));
   go.type = 'submit';
   form.appendChild(input);
+  if (wordInput) form.appendChild(wordInput);
   form.appendChild(go);
   form.addEventListener('submit', (ev) => {
     ev.preventDefault();
     const id = digitsOnly(input.value);
     if (!id) return;
+    const word = wordInput ? wordInput.value.trim() : '';
+    if (needsWord && !word) return;
     go.disabled = true;
-    open(id).finally(() => { go.disabled = false; });
+    open(id, word).finally(() => { go.disabled = false; });
   });
   box.appendChild(form);
+  if (needsWord) {
+    const hint = el('p', null, t('exam.gate.wordHelp'));
+    hint.style.cssText = 'margin:10px 0 0;font-size:0.78rem';
+    box.appendChild(hint);
+  }
 
   const m = el('div', `msg${cls ? ` ${cls}` : ''}`, msg || '');
   box.appendChild(m);
@@ -271,10 +306,11 @@ async function paint(pages, key, baseUrl) {
 
 /* ------------------------------------------------------------------ open */
 
-async function open(id) {
+async function open(id, word = '') {
   const version = digitalRoot(id);
   state.id = id;
   state.version = version;
+  state.word = word;
 
   if (state.subject !== 'longrun') {          // the short-run exam does not exist yet
     showUnavailable('exam.notWritten');
@@ -319,7 +355,7 @@ async function open(id) {
 
   let key = null;
   try {
-    const kek = await deriveKek(id, man.kdf.salt, man.kdf.iterations);
+    const kek = await deriveKek(passphraseFor(man, id, word), man.kdf.salt, man.kdf.iterations);
     key = await unwrapContentKey(kek, man.wrapped, lang);
   } catch (_) { key = null; }
 
@@ -375,7 +411,7 @@ export function initExam({ subject }) {
       b.addEventListener('click', () => {
         state.examLang = code;
         [...seg.children].forEach((c) => c.setAttribute('aria-pressed', String(c === b)));
-        if (state.id) open(state.id);
+        if (state.id) open(state.id, state.word);
       });
       seg.appendChild(b);
     });
@@ -402,5 +438,12 @@ export function initExam({ subject }) {
   }
 
   showGate();
+  getManifest().then((man) => {
+    const required = !!man.kdf?.requiresWord;
+    if (required !== needsWord) {
+      needsWord = required;
+      if (!state.id && host()?.querySelector('.gate')) showGate();
+    }
+  }).catch(() => { /* the gate still works; open() reports the failure */ });
   onLangChange(() => { if (!state.id) showGate(); setHeader(!!host()?.querySelector('.exam-page')); });
 }
