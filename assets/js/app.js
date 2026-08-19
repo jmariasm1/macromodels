@@ -407,19 +407,22 @@ export function initPage({ pageId, model, examSubject }) {
 
 export function buildChrome(pageId) {
   applyI18n();
-  const langHost = document.getElementById('lang-host');
-  if (langHost) {
-    langHost.innerHTML = '';
-    const seg = el('div', 'segmented');
-    [['es', 'ES'], ['en', 'EN']].forEach(([code, label]) => {
+  // Every [data-lang-host] gets a language switch: the small one in the header
+  // and, on the landing page, a big one in the middle of the hero.
+  document.querySelectorAll('[data-lang-host]').forEach((host) => {
+    host.innerHTML = '';
+    const seg = el('div', `segmented${host.dataset.langHost === 'big' ? ' big' : ''}`);
+    [['es', 'Español'], ['en', 'English']].forEach(([code, full]) => {
+      const label = host.dataset.langHost === 'big' ? full : code.toUpperCase();
       const b = el('button', null, label);
       b.type = 'button';
       b.setAttribute('aria-pressed', String(getLang() === code));
+      b.setAttribute('aria-label', full);
       b.addEventListener('click', () => setLang(code));
       seg.appendChild(b);
     });
-    langHost.appendChild(seg);
-  }
+    host.appendChild(seg);
+  });
   document.querySelectorAll('[data-nav]').forEach((a) => {
     if (a.dataset.nav === pageId) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');

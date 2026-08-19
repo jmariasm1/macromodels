@@ -144,7 +144,9 @@ a { color: var(--accent); }
   min-height: calc(100vh - 56px);
 }
 
-.split.collapsed { grid-template-columns: 0 0 minmax(0, 1fr); }
+/* Collapsed: hiding the first two items would otherwise auto-place the models
+   pane into column 1, so the grid must drop to a single full-width column. */
+.split.collapsed { grid-template-columns: minmax(0, 1fr); }
 .split.collapsed .exam-pane,
 .split.collapsed .gutter { display: none; }
 
@@ -463,7 +465,24 @@ table.data td.neg { color: var(--danger); }
 .hero { text-align: center; margin-bottom: 30px; }
 .hero h1 { margin: 0 0 8px; font-size: clamp(2rem, 4vw, 3rem); }
 .hero .sub { color: var(--muted); display: grid; gap: 3px; font-size: 0.98rem; }
-.hero .lang { margin-top: 20px; display: flex; justify-content: center; gap: 10px; align-items: center; }
+.hero .lang {
+  margin-top: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Big language switch in the middle of the landing page: the header one is easy
+   to miss in the top-right corner. */
+.segmented.big { border-width: 2px; box-shadow: var(--shadow); }
+.segmented.big button {
+  padding: 11px 30px;
+  font-size: 1rem;
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
 
 .choice { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(310px, 100%), 1fr)); gap: 20px; }
 
