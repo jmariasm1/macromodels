@@ -252,11 +252,11 @@ async function open(id) {
   state.version = version;
 
   if (state.subject !== 'longrun') {          // the short-run exam does not exist yet
-    showUnavailable('exam.pending');
+    showUnavailable('exam.notWritten');
     return;
   }
   if (version < 1 || version > 9) {
-    showGate(t('exam.badid'), 'err');
+    showUnavailable('exam.badid');
     return;
   }
 
@@ -265,13 +265,13 @@ async function open(id) {
   try {
     man = await getManifest();
   } catch (_) {
-    showGate(t('exam.badid'), 'err');
+    showUnavailable('exam.badid');
     return;
   }
 
   const subj = man.subjects?.[state.subject];
   if (!subj || !subj.available) {
-    showUnavailable('exam.pending');
+    showUnavailable('exam.notWritten');
     return;
   }
 
@@ -287,7 +287,7 @@ async function open(id) {
   const lang = state.examLang || getLang();
   const info = subj.versions?.[String(version)]?.[lang];
   if (!info) {
-    showUnavailable('exam.pending');
+    showUnavailable('exam.notWritten');
     return;
   }
 
@@ -297,15 +297,17 @@ async function open(id) {
     key = await unwrapContentKey(kek, man.wrapped, lang);
   } catch (_) { key = null; }
 
+  // An ID that is not on the class list gets exactly the same answer as one that
+  // arrives outside the exam window: the viewer never confirms whether an ID exists.
   if (!key) {
-    showGate(t('exam.badid'), 'err');
+    showUnavailable('exam.badid');
     return;
   }
 
   try {
     await paint(info.pages, key, `assets/exam/${subj.dir}/v${version}-${lang}-`);
   } catch (_) {
-    showUnavailable('exam.pending');
+    showUnavailable('exam.notWritten');
   }
 }
 
