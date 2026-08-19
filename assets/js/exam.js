@@ -1,8 +1,11 @@
 // exam.js — the gated exam viewer that lives in the left-hand pane.
 //
 // How access works
-//   1. The student types their ID. The exam VERSION is the digital root of that
-//      number (add the digits, repeat until one digit is left, 1..9).
+//   1. The student types the access key IN FULL — the prefix and then their ID,
+//      e.g. "macro1000382896". Typing the bare ID is refused: the prefix is part
+//      of the key, not something the page adds on their behalf. The exam VERSION
+//      is the digital root of the ID (add the digits, repeat until one digit
+//      is left, 1..9).
 //   2. A passphrase built as prefix + [session word] + ID (e.g. "macro123456789")
 //      is stretched with PBKDF2-SHA256 (200k iterations) into a key-encryption
 //      key, which is used to try to unwrap the content key of the requested
@@ -31,6 +34,7 @@ const TEST_BYPASS_WINDOW = true;   // the professor's test codes ignore the sche
 
 let manifestPromise = null;
 let needsWord = false;   // set from the manifest once it loads
+let kdfPrefix = 'macro';  // ditto; only used for the wording on the gate
 let state = { subject: null, id: null, version: null, examLang: null, word: '', zoom: 1 };
 
 /* ----------------------------------------------------------------- utils */
@@ -43,6 +47,9 @@ function el(tag, cls, text) {
 }
 
 function digitsOnly(s) { return (s || '').replace(/\D+/g, ''); }
+
+/** Typed input, made forgiving about case and stray spaces but nothing else. */
+function normalise(s) { return (s || '').trim().toLowerCase().replace(/\s+/g, ''); }
 
 /** Digital root: 123456789 -> 45 -> 9. Returns 0 for an all-zero input. */
 export function digitalRoot(idDigits) {
@@ -167,19 +174,25 @@ async function decryptPage(url, key) {
 function host() { return document.getElementById('exam-body'); }
 
 function showGate(msg, cls) {
+  // Nothing is open while the gate is up, so drop any version left over from a
+  // previous attempt instead of leaving it in the header.
+  state.id = null;
+  state.version = null;
+  setHeader(false);
   const h = host();
   h.innerHTML = '';
   const box = el('div', 'gate');
   box.appendChild(el('h3', null, t('exam.gate.title')));
-  box.appendChild(el('p', null, t('exam.gate.help')));
+  box.appendChild(el('p', null, t('exam.gate.help', { prefix: kdfPrefix })));
 
   const form = el('form');
   const input = el('input');
   input.type = 'text';
-  input.inputMode = 'numeric';
   input.autocomplete = 'off';
-  input.placeholder = t('exam.gate.placeholder');
-  input.setAttribute('aria-label', t('exam.gate.placeholder'));
+  input.autocapitalize = 'off';
+  input.spellcheck = false;
+  input.placeholder = t('exam.gate.placeholder', { prefix: kdfPrefix });
+  input.setAttribute('aria-label', t('exam.gate.title'));
 
   // Only asked for when the build was made with a session word.
   let wordInput = null;
@@ -198,12 +211,12 @@ function showGate(msg, cls) {
   form.appendChild(go);
   form.addEventListener('submit', (ev) => {
     ev.preventDefault();
-    const id = digitsOnly(input.value);
-    if (!id) return;
-    const word = wordInput ? wordInput.value.trim() : '';
+    const typed = normalise(input.value);
+    if (!typed) return;
+    const word = wordInput ? normalise(wordInput.value) : '';
     if (needsWord && !word) return;
     go.disabled = true;
-    open(id, word).finally(() => { go.disabled = false; });
+    open(typed, word).finally(() => { go.disabled = false; });
   });
   box.appendChild(form);
   if (needsWord) {
@@ -230,7 +243,7 @@ function showUnavailable(reasonKey) {
   box.appendChild(el('div', 'stamp', t('exam.unavailable.stamp')));
   box.appendChild(el('div', 'big', t('exam.pending')));
   box.appendChild(el('p', null, t(reasonKey)));
-  const back = el('button', 'btn', t('exam.gate.title'));
+  const back = el('button', 'btn', t('exam.back'));
   back.type = 'button';
   back.style.marginTop = '14px';
   back.addEventListener('click', () => showGate());
@@ -306,7 +319,8 @@ async function paint(pages, key, baseUrl) {
 
 /* ------------------------------------------------------------------ open */
 
-async function open(id, word = '') {
+async function open(typed, word = '') {
+  const id = digitsOnly(typed);
   const version = digitalRoot(id);
   state.id = id;
   state.version = version;
@@ -316,16 +330,25 @@ async function open(id, word = '') {
     showUnavailable('exam.notWritten');
     return;
   }
-  if (version < 1 || version > 9) {
-    showUnavailable('exam.badid');
-    return;
-  }
 
   showLoading();
   let man;
   try {
     man = await getManifest();
   } catch (_) {
+    showUnavailable('exam.badid');
+    return;
+  }
+
+  // The access key has to be typed IN FULL: the prefix followed by the ID and
+  // nothing else. Typing the bare ID is refused — the prefix is part of the key,
+  // not something the page adds for you.
+  const prefix = (man.kdf?.prefix || '').toLowerCase();
+  if (typed !== `${prefix}${id}`) {
+    showGate(t('exam.gate.format', { prefix }), 'err');
+    return;
+  }
+  if (!id || version < 1 || version > 9) {
     showUnavailable('exam.badid');
     return;
   }
@@ -440,8 +463,10 @@ export function initExam({ subject }) {
   showGate();
   getManifest().then((man) => {
     const required = !!man.kdf?.requiresWord;
-    if (required !== needsWord) {
+    const prefix = (man.kdf?.prefix || '').toLowerCase();
+    if (required !== needsWord || prefix !== kdfPrefix) {
       needsWord = required;
+      kdfPrefix = prefix;
       if (!state.id && host()?.querySelector('.gate')) showGate();
     }
   }).catch(() => { /* the gate still works; open() reports the failure */ });
